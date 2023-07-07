@@ -132,7 +132,7 @@ class APlayerVessel : APlayerModPawn
     //*** ABILITIES ***//
 
     //Boost
-    float MaxBoost = 100.f;
+    float MaxBoost = 300.f;
     float CurrentBoost;
     float BoostDeductAmount = 40.f;
     float BoostRecoveryAmount = 15.f;

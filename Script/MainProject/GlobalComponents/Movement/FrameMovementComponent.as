@@ -7,14 +7,15 @@ class UFrameMovementComponent : UActorComponent
     private bool bShouldCornerApplySlide;
 
     UPROPERTY(meta = (EditCondition="bApplySlide", EditConditionHides))
-    private float CornerSlideTargetForce = 1000.0;
+    private float CornerSlideTargetForce = 300.0;
 
     UPROPERTY(meta = (EditCondition="bApplySlide", EditConditionHides))
-    private float CornerSlideInterp = 1500.0;
+    private float CornerSlideInterp = 1000.0;
 
     private float CornerSlideForce;
     private FVector LastSavedSlideDirection;
-    private  FVector LastSlideImpactPoint;
+    private FVector LastSlideImpactPoint;
+    private FVector LastSlideImpactNormal;
 
     //TODO setup gravity logic internally
     UPROPERTY()
@@ -113,7 +114,9 @@ class UFrameMovementComponent : UActorComponent
             Impulses += CurrentVelocity;
             CurrentVelocity *= ImpulseReduction;
 
-            if (CurrentVelocity.Size() <= 0.00001f)
+            // Print("CurrentVelocity in Impulse: " + CurrentVelocity);
+
+            if (CurrentVelocity.Size() <= 0.025f)
                 ImuplsesToRemove.Add(CurrentVelocity);
         }
 
@@ -127,15 +130,17 @@ class UFrameMovementComponent : UActorComponent
 
         if (bApplyCornerSlide)
         {
+            //Issues with going over slanted corners
             if (bShouldCornerApplySlide)
             {
+                // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + (PredictedMove - LastSlideImpactPoint).GetSafeNormal() * 500.0, 2.0, FLinearColor::Yellow, 10, 5.0);
+
                 FVector HitToPredicted = (PredictedMove - LastSlideImpactPoint).GetSafeNormal();
-                FVector VRight = HitToPredicted.ConstrainToPlane(FVector::UpVector).CrossProduct(HitToPredicted);
+                FVector VRight = HitToPredicted.ConstrainToPlane(LastSlideImpactNormal).CrossProduct(HitToPredicted);
                 LastSavedSlideDirection = HitToPredicted.CrossProduct(VRight).GetSafeNormal();
 
                 CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, CornerSlideTargetForce, DeltaTime, CornerSlideInterp * 2.0);
-                System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + LastSavedSlideDirection * 500.0, 10.0, FLinearColor::Teal, 0.1, 5.0);
-
+                // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + LastSavedSlideDirection * 500.0, 10.0, FLinearColor::Teal, 0.1, 5.0);
             }
             else
             {
@@ -156,7 +161,7 @@ class UFrameMovementComponent : UActorComponent
             
             FHitResult MainHit;
             // System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove + Velocity.GetSafeNormal(), PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
-            System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, MainHit, true, FLinearColor::Red);
+            System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
             FVector TraceDirection = Velocity.GetSafeNormal();
 
             //Still vulnerable to dashing through messy collision when at 15 frames
@@ -180,7 +185,7 @@ class UFrameMovementComponent : UActorComponent
                 }
                 
                 //Must trace slightly smaller than the current radiius so as not to get the same wall hit
-                System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, MainHit, true, FLinearColor::Red);
+                System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
             }
 
             PrintToScreen("bShouldCornerApplySlide: " + bShouldCornerApplySlide);
@@ -198,7 +203,6 @@ class UFrameMovementComponent : UActorComponent
             {
                 PrintToScreen("WE ARE OVER MAX");
             }
-            
 
             System::SphereTraceSingle(PredictedMove, PredictedMove - FVector::UpVector * 10, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
 
@@ -209,7 +213,7 @@ class UFrameMovementComponent : UActorComponent
 
                 if (SlopeDot >= MaxSlopeDot)
                 {
-                    System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Green, 0.0, 5.0);
+                    // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Green, 0.0, 5.0);
 
                     float CenterToNormalDot = MainHit.ImpactNormal.DotProduct((Owner.ActorLocation - MainHit.ImpactPoint).GetSafeNormal());
                     PrintToScreen("CenterToNormalDot: " + CenterToNormalDot); 
@@ -218,12 +222,13 @@ class UFrameMovementComponent : UActorComponent
                     {
                         bShouldCornerApplySlide = true;
                         LastSlideImpactPoint = MainHit.ImpactPoint;
+                        LastSlideImpactNormal = MainHit.ImpactNormal;
                         PrintToScreen("Apply Corner Slide - CenterToNormalDot: " + CenterToNormalDot); 
                     }
                 }
                 else
                 {
-                    System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
+                    // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
                 }
             }
         }

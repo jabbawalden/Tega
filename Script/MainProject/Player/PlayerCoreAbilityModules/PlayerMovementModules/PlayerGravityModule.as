@@ -51,6 +51,9 @@ class UPlayerGravityModule : UModule
 
     void Update(float DeltaTime) override
     {
+        //Constrain gravity max to the least slope we are colliding against
+        //Probably move logic over to movement component and have it apply internally before the main move
+
         Gravity = Math::FInterpConstantTo(Gravity, Player.MovementSettings.Gravity, DeltaTime, Player.MovementSettings.GravityAcceleration);
         
         FVector Velocity;
