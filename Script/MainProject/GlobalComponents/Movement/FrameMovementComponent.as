@@ -7,27 +7,31 @@ class UFrameMovementComponent : UActorComponent
     private bool bShouldCornerApplySlide;
 
     UPROPERTY(meta = (EditCondition="bApplySlide", EditConditionHides))
-    private float CornerSlideTargetForce = 300.0;
+    private float CornerSlideTargetForce = 400.0;
 
     UPROPERTY(meta = (EditCondition="bApplySlide", EditConditionHides))
-    private float CornerSlideInterp = 1000.0;
+    private float CornerSlideInterp = 500.0;
 
     private float CornerSlideForce;
     private FVector LastSavedSlideDirection;
     private FVector LastSlideImpactPoint;
     private FVector LastSlideImpactNormal;
 
-    //TODO setup gravity logic internally
+    //GRAVITY
     UPROPERTY()
     bool bApplyGravity = true;
 
-    UPROPERTY()
-    float MaxSlopeDot = 0.85;
+    UPROPERTY(meta = (EditCondition="bApplyGravity", EditConditionHides))
+    FMovementGravitySettings GravitySettings;
+    float Gravity = GravitySettings.InitAmount;
+
+    FVector LastGroundHit;
+    bool bStepUpGroundCheckQueryAvailable;
+    bool bStepUpGroundCheckApplicable;
 
     //Velocity collection this frame
     TArray<FVector> VelocityCollection;
     FVector Velocity;
-
     //Impulse collections this frame 
     TArray<FVector> ImuplseCollection;
     //Drag for impulses
@@ -46,10 +50,13 @@ class UFrameMovementComponent : UActorComponent
     bool bTEMPHaveDrawn;
 
     private bool bIsGrounded;
+    private bool bPreviouslyGrounded;
     private FVector TotalVelocityPreCalc;
 
     bool bDeltaVelocityApplied;
     bool bImpulseApplied;
+
+    bool TEMPDebugDrew;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -57,9 +64,7 @@ class UFrameMovementComponent : UActorComponent
         AModActor ModActor = Cast<AModActor>(Owner);
         APlayerModPawn PlayerPawn = Cast<APlayerModPawn>(Owner);
         
-        //Due to circular dependancy, we must use this roundabout method to update movement in the correct module group
         MakeMovementModule = Cast<UFrameCalculateMoveModule>(NewObject(this, UFrameCalculateMoveModule::StaticClass())); 
-        // MakeMovementModule.OnModuleUpdate.AddUFunction(this, n"Update");
 
         if (ModActor != nullptr)
             ModActor.AddModule(MakeMovementModule);
@@ -70,12 +75,17 @@ class UFrameMovementComponent : UActorComponent
         FrameMoveIgnoreActors.Add(Owner);
     }
 
-    void InitSphereComponent(USphereComponent Comp)
+    void InitWithSphereComponent(USphereComponent Sphere)
     {
-        PlayerSphereComp = Comp;
+        PlayerSphereComp = Sphere;
     }
 
-    void AddDeltaVelocityToFrame(FVector NewVelocity)
+    void InitWithCapsuleComponent(UCapsuleComponent Capsule)
+    {
+
+    }
+
+    void AddVelocityToFrame(FVector NewVelocity)
     {
         VelocityCollection.Add(NewVelocity);
         bDeltaVelocityApplied = true;
@@ -83,9 +93,32 @@ class UFrameMovementComponent : UActorComponent
 
     //Runs internally?
     //May need solution if gravity too hard to make smooth
-    void ApplyGravity()
+    void ApplyGravity(float DeltaTime)
     {
+        if (!bIsGrounded)
+        {
+            PrintToScreen(f"{Gravity=}");
+           
+            if (bPreviouslyGrounded)
+                Gravity = GravitySettings.InitAmount;
+            else
+                Gravity = Math::FInterpConstantTo(Gravity, GravitySettings.Gravity, DeltaTime, GravitySettings.GravityAcceleration);
+            
+            FVector GravityVelocity = FVector(0.f, 0.f, -Gravity) * DeltaTime;
+            AddVelocityToFrame(GravityVelocity);           
+        }
 
+        bPreviouslyGrounded = bIsGrounded;
+    }
+
+    void DisableGravity()
+    {
+        bApplyGravity = false;
+    }
+
+    void EnableGravity()
+    {
+        bApplyGravity = true;
     }
 
     void AddImpulse(FVector Impulse)
@@ -95,9 +128,11 @@ class UFrameMovementComponent : UActorComponent
     }
 
     // Runs in RunMovement group
-    UFUNCTION()
     void Update(float DeltaTime)
     {
+        if (bApplyGravity)
+            ApplyGravity(DeltaTime);
+
         Velocity = FVector(0.0); 
         FVector Impulses; 
         FVector LastLoc = Owner.ActorLocation;
@@ -114,8 +149,6 @@ class UFrameMovementComponent : UActorComponent
             Impulses += CurrentVelocity;
             CurrentVelocity *= ImpulseReduction;
 
-            // Print("CurrentVelocity in Impulse: " + CurrentVelocity);
-
             if (CurrentVelocity.Size() <= 0.025f)
                 ImuplsesToRemove.Add(CurrentVelocity);
         }
@@ -130,24 +163,7 @@ class UFrameMovementComponent : UActorComponent
 
         if (bApplyCornerSlide)
         {
-            //Issues with going over slanted corners
-            if (bShouldCornerApplySlide)
-            {
-                // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + (PredictedMove - LastSlideImpactPoint).GetSafeNormal() * 500.0, 2.0, FLinearColor::Yellow, 10, 5.0);
-
-                FVector HitToPredicted = (PredictedMove - LastSlideImpactPoint).GetSafeNormal();
-                FVector VRight = HitToPredicted.ConstrainToPlane(LastSlideImpactNormal).CrossProduct(HitToPredicted);
-                LastSavedSlideDirection = HitToPredicted.CrossProduct(VRight).GetSafeNormal();
-
-                CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, CornerSlideTargetForce, DeltaTime, CornerSlideInterp * 2.0);
-                // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + LastSavedSlideDirection * 500.0, 10.0, FLinearColor::Teal, 0.1, 5.0);
-            }
-            else
-            {
-                CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, 0.0, DeltaTime, CornerSlideInterp);
-            }
-            
-            PredictedMove += LastSavedSlideDirection * CornerSlideForce * DeltaTime;
+            PredictedMove += GetCornerSlideOffset(DeltaTime);
         }
 
         bShouldCornerApplySlide = false;
@@ -157,84 +173,105 @@ class UFrameMovementComponent : UActorComponent
             bIsGrounded = false;
 
             int Iterations = 0;
-            int MaxIterations = 20;
-            
-            FHitResult MainHit;
-            // System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove + Velocity.GetSafeNormal(), PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
-            System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
-            FVector TraceDirection = Velocity.GetSafeNormal();
+            int MaxIterations = 15;
 
-            //Still vulnerable to dashing through messy collision when at 15 frames
-            //But best version of the system so far.
-            while (Iterations < MaxIterations && MainHit.bBlockingHit)
-            { 
-                Iterations++;
+            FVector DeltaToMove = Velocity;
+
+            FHitResult Hit;
+
+            for (int i = 0; i < MaxIterations; i++)
+            {
+                Owner.AddActorWorldOffset(DeltaToMove, true, Hit, false);
+                DeltaToMove -= DeltaToMove * Hit.Time;
 
                 if (!bIsGrounded)
-                    bIsGrounded = GroundedCheck(MainHit);
-
-                FVector DepenetrationOffset = GetDepenetrationOffset(PredictedMove, MainHit.ImpactNormal, MainHit.ImpactPoint, DeltaTime);
-                // Print("DepenetrationOffset: " + DepenetrationOffset);
-                TraceDirection = MainHit.ImpactNormal;  
-                PredictedMove += DepenetrationOffset;
-
-                for (FVector& CurrentVelocity : ImuplseCollection)
                 {
-                    FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
-                    CurrentVelocity -= RemoveImpulse;
+                    bIsGrounded = GroundedCheck(Hit);
                 }
-                
-                //Must trace slightly smaller than the current radiius so as not to get the same wall hit
-                System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
+
+                if (Hit.bBlockingHit)
+                {
+                    FVector DepentrationDelta = Hit.Normal * Hit.Normal.DotProduct(Velocity);
+                    Velocity -= DepentrationDelta;
+                }
+
+                if (DeltaToMove.IsNearlyZero())
+                    break;
+
+                DeltaToMove -= Hit.Normal * DeltaToMove.DotProduct(Hit.Normal);
             }
+            
 
-            PrintToScreen("bShouldCornerApplySlide: " + bShouldCornerApplySlide);
-            PrintToScreen("bIsGrounded: " + bIsGrounded);
+            // FHitResult MainHit;
+            // System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
+            // FVector TraceDirection = Velocity.GetSafeNormal();
 
-            // System::SphereTraceMulti(Owner.ActorLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, FrameHits, true, FLinearColor::Red);
-            PrintToScreen("Iterations: " + Iterations);
+            // //Still vulnerable to dashing through messy collision when at 15 frames
+            // //But best version of the system so far.
+            // while (Iterations < MaxIterations && MainHit.bBlockingHit)
+            // {
+            //     Iterations++;
 
-            //Sliding off edges
+            //     if (!bIsGrounded)
+            //     {
+            //         bIsGrounded = GroundedCheck(MainHit);
+            //     }
+                
+            //     FVector CorrectedNormal = MainHit.ImpactNormal;
+            //     FVector DepenetrationOffset;
+
+            //     DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
+
+            //     // switch(MovementCollisionSolveData::GetCollisionType(MainHit))
+            //     // {
+            //     //     case EGetMovementCollisionType::Ground:
+            //     //         DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
+            //     //         break;
+            //     //     case EGetMovementCollisionType::Wall:
+            //     //         CorrectedNormal = CorrectedNormal.ConstrainToPlane(FVector::UpVector);
+            //     //         DepenetrationOffset = GetWallDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
+            //     //         break;
+            //     // }
+
+            //     // FVector DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
+            //     // PrintToScreen("DepenetrationOffset: " + DepenetrationOffset);
+
+            //     TraceDirection = CorrectedNormal;  
+            //     PredictedMove += DepenetrationOffset;
+
+            //     for (FVector& CurrentVelocity : ImuplseCollection)
+            //     {
+            //         FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
+            //         CurrentVelocity -= RemoveImpulse;
+            //     }
+
+            //     // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
+                
+            //     //Must trace slightly smaller than the current radiius so as not to get the same wall hit
+            //     System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
+            // }
             // Owner.ActorLocation = PredictedMove;
 
-            if (Iterations < MaxIterations)
-                Owner.ActorLocation = PredictedMove;
-            else
+            // Owner.ActorLocation += Velocity;
+
+            PrintToScreen(f"{Iterations=}");
+            
+            if (!bIsGrounded)
             {
-                PrintToScreen("WE ARE OVER MAX");
+                bStepUpGroundCheckApplicable = false;
+                bStepUpGroundCheckQueryAvailable = false;
             }
 
-            System::SphereTraceSingle(PredictedMove, PredictedMove - FVector::UpVector * 10, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
+            // if (bStepUpGroundCheckQueryAvailable)
+            //     LastGroundHit = SaveNextGroundHit;
 
-            if (MainHit.bBlockingHit)
-            {
-                float SlopeDot = MainHit.ImpactNormal.DotProduct(FVector::UpVector);
-                PrintToScreen("SlopeDot: " + SlopeDot); 
+            // PrintToScreen(f"{bStepUpGroundCheckQueryAvailable=}");
+            // PrintToScreen(f"{bStepUpGroundCheckApplicable=}");
 
-                if (SlopeDot >= MaxSlopeDot)
-                {
-                    // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Green, 0.0, 5.0);
-
-                    float CenterToNormalDot = MainHit.ImpactNormal.DotProduct((Owner.ActorLocation - MainHit.ImpactPoint).GetSafeNormal());
-                    PrintToScreen("CenterToNormalDot: " + CenterToNormalDot); 
-
-                    if (CenterToNormalDot < 0.99 && bApplyCornerSlide)
-                    {
-                        bShouldCornerApplySlide = true;
-                        LastSlideImpactPoint = MainHit.ImpactPoint;
-                        LastSlideImpactNormal = MainHit.ImpactNormal;
-                        PrintToScreen("Apply Corner Slide - CenterToNormalDot: " + CenterToNormalDot); 
-                    }
-                }
-                else
-                {
-                    // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
-                }
-            }
-        }
-        else
-        {
-            PrintToScreen("No Movement Being Made");
+            //Sliding off edges
+            // if (!bStepUpApplied)
+            if (bApplyCornerSlide)
+                RunCornerSlideCheck();
         }
 
         MoveThisFrame = Owner.ActorLocation - LastLoc;
@@ -248,29 +285,36 @@ class UFrameMovementComponent : UActorComponent
 
     FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
     {
-        //Get size of difference between predicted location, and impact point
-        float Size = (ImpactPoint - CurrentPredictedMove).ConstrainToDirection(ImpactNormal).Size();
+        float Size = (ImpactPoint - CurrentPredictedMove).Size();
+        float SizeBeforeDotCheck = Size;
 
-        //Taking edges into account by getting updated radius constrained in that direction to the starting location, not predicted location
-        float RadiusToConstrainedCenter = (ImpactPoint - Owner.ActorLocation).ConstrainToDirection(ImpactNormal).Size();
-
-        // System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
-
-        //If predicted move has gone behind the wall, convert size to negative so that the player still gets pushed out in the right direction, and not at a negative value
-        //eg sphereradius (100) - size (120) = -20, negative result sends sphere in the wrong direction when multiplied against the impact normal.
-        FVector Direction = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
-        float NormalDot = ImpactNormal.DotProduct(Direction);
-        if (NormalDot < 0.0)
-        {
-            Size = -Size;
-        }
+        // FVector Direction = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
+        // float NormalDot = ImpactNormal.DotProduct(Direction);
+        // if (NormalDot < 0.0)
+        // {
+        //     Size = -Size;
+        // }
         
         //Intitialize depth
         float Depth = PlayerSphereComp.SphereRadius - Size;
+        // float Depth = Hit.Distance;
+
+        if (Depth > 50.0 && !TEMPDebugDrew)
+        {
+            Print(f"{Depth=}");
+            // Print(f"{NormalDot=}");
+            Print(f"{SizeBeforeDotCheck=}");
+            Print(f"{Size=}");
+            System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 500.0, 10.0, FLinearColor::Red, 500.0, 2.5);
+            System::DrawDebugSphere(Owner.ActorLocation, PlayerSphereComp.SphereRadius, 12, FLinearColor::Red, 500, 2);
+            System::DrawDebugArrow(Owner.ActorLocation, CurrentPredictedMove, 10.0, FLinearColor::Green, 500.0, 2.5);
+            System::DrawDebugSphere(CurrentPredictedMove, PlayerSphereComp.SphereRadius, 12, FLinearColor::Green, 500, 1);
+            TEMPDebugDrew = true;
+        }
         //If radius to original position constrained to hit normal is less than sphere radius, then use this instead to account for being along edges or ground from a non completely vertical angle
-        float ImpactDotUpCheck = ImpactNormal.DotProduct(FVector::UpVector);
-        if (RadiusToConstrainedCenter < PlayerSphereComp.SphereRadius && ImpactDotUpCheck > MaxSlopeDot)
-            Depth = RadiusToConstrainedCenter - Size;
+        // float ImpactDotUpCheck = ImpactNormal.DotProduct(FVector::UpVector);
+        // if (RadiusToConstrainedCenter < PlayerCollisionComp.SphereRadius && ImpactDotUpCheck > MovementCollisionSolveData::MinWalkableDot)
+        //     Depth = RadiusToConstrainedCenter - Size;
 
         FVector PenetrationOffset = ImpactNormal * Depth;
 
@@ -280,6 +324,57 @@ class UFrameMovementComponent : UActorComponent
         return PenetrationOffset;
     }
 
+    FVector GetCornerSlideOffset(float DeltaTime)
+    {
+        //Deals with going over slanted corners
+        if (bShouldCornerApplySlide)
+        {
+            // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + (PredictedMove - LastSlideImpactPoint).GetSafeNormal() * 500.0, 2.0, FLinearColor::Yellow, 10, 5.0);
+
+            FVector HitToPredicted = (PredictedMove - LastSlideImpactPoint).GetSafeNormal();
+            FVector VRight = HitToPredicted.ConstrainToPlane(LastSlideImpactNormal).CrossProduct(HitToPredicted);
+            FVector OffEdge = FVector::UpVector.CrossProduct(VRight); 
+            
+            //This one is for allowing for going in downward directions
+            // LastSavedSlideDirection = HitToPredicted.CrossProduct(VRight).GetSafeNormal();
+            
+            LastSavedSlideDirection = OffEdge.GetSafeNormal();
+
+            CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, CornerSlideTargetForce, DeltaTime, CornerSlideInterp);
+            // System::DrawDebugArrow(Owner.ActorLocation, Owner.ActorLocation + OffEdge * 500.0, 10.0, FLinearColor::Teal, 0.1, 5.0);
+        }
+        else
+        {
+            CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, 0.0, DeltaTime, CornerSlideInterp);
+        }
+
+        return LastSavedSlideDirection * CornerSlideForce * DeltaTime;;
+    }
+
+    void RunCornerSlideCheck()
+    {
+        FHitResult Hit;
+
+        System::SphereTraceSingle(PredictedMove, PredictedMove - FVector::UpVector * 10, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
+
+        if (Hit.bBlockingHit)
+        {
+            float SlopeDot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
+
+            if (SlopeDot >= MovementCollisionSolveData::MinWalkableDot)
+            {
+                float CenterToNormalDot = Hit.ImpactNormal.DotProduct((Owner.ActorLocation - Hit.ImpactPoint).GetSafeNormal());
+
+                if (CenterToNormalDot < 0.99 && bApplyCornerSlide)
+                {
+                    bShouldCornerApplySlide = true;
+                    LastSlideImpactPoint = Hit.ImpactPoint;
+                    LastSlideImpactNormal = Hit.ImpactNormal;
+                }
+            }
+        }
+    }
+
     bool GroundedCheck(FHitResult Hit)
     {
         if (Hit.bBlockingHit)
@@ -287,7 +382,7 @@ class UFrameMovementComponent : UActorComponent
             float Dot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
             // PrintToScreen("Grounded Dot: " + Dot);
             // PrintToScreen("Hit.ImpactNormal: " + Hit.ImpactNormal);
-            if (Dot >= MaxSlopeDot)
+            if (Dot >= MovementCollisionSolveData::MinWalkableDot)
             {
                return true;
             }
@@ -320,7 +415,7 @@ class UFrameMovementComponent : UActorComponent
     FVector GetGroundPlane()
     {
         FHitResult Hit;
-        System::SphereTraceSingle(Owner.ActorLocation, Owner.ActorLocation + Owner.ActorForwardVector, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
+        System::SphereTraceSingle(Owner.ActorLocation, Owner.ActorLocation - Owner.ActorUpVector, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
 
         if (Hit.bBlockingHit)
         {

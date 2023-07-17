@@ -43,12 +43,14 @@ class UPlayerAirBoostModule : UModule
     {
         Super::OnActivated();
         Impulse = ImpulseTarget * 0.75f;
+        MoveComp.DisableGravity();
         Player.BlockModule(MovementTags::Gravity, this);
     }
 
     void OnDeactivated() override
     {
         Super::OnDeactivated();
+        MoveComp.EnableGravity();
         Player.UnblockModule(MovementTags::Gravity, this);
     }
 

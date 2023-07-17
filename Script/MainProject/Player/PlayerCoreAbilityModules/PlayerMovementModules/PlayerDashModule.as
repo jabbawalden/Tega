@@ -77,7 +77,7 @@ class UPlayerDashModule : UModule
         DashDirectionCurrent = MoveComp.GetPlaneCorrectedVelocity(DashDirectionCurrent);
 
         DashVelocity = DashDirectionCurrent * DashSpeed * DeltaTime;
-        MoveComp.AddDeltaVelocityToFrame(DashVelocity);
+        MoveComp.AddVelocityToFrame(DashVelocity);
 
         if (DashTime <= 0.f)
         {

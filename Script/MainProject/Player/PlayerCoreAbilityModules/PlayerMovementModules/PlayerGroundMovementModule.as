@@ -56,13 +56,13 @@ class UPlayerGroundMovementModule : UModule
         FVector TargetVelocity = Player.SavedMovementDirection * Player.MovementSpeed.GetValue();
         SetSavedInputAndSpeed(DeltaTime);
 
-        Velocity = Math::VInterpTo(Velocity, TargetVelocity, DeltaTime, 8.f);
+        Velocity = Math::VInterpTo(Velocity, TargetVelocity, DeltaTime, 18.f);
         Velocity = MoveComp.GetPlaneCorrectedVelocity(Velocity);
 
         PrintToScreen(f"{Velocity.Size()=}");
 
         FVector DeltaMoveOffset = Velocity * DeltaTime;
-        MoveComp.AddDeltaVelocityToFrame(DeltaMoveOffset);
+        MoveComp.AddVelocityToFrame(DeltaMoveOffset);
     }
 
     void SetSavedInputAndSpeed(float DeltaTime)
@@ -70,11 +70,11 @@ class UPlayerGroundMovementModule : UModule
         if (Player.GetStickVector(InputNames::LeftStickMovement).Size() > 0.f)
         {
             Player.SavedMovementDirection = Player.GetStickVector(InputNames::LeftStickMovement);
-            Player.MovementSpeed.CalculateToTarget(Player.MovementSettings.MoveSpeed, DeltaTime, 0.4f);
+            Player.MovementSpeed.CalculateToTarget(Player.MovementSettings.MoveSpeed, DeltaTime, 0.1f);
         }
         else
         {
-            Player.MovementSpeed.CalculateToTarget(0.f, DeltaTime, 0.1f);
+            Player.MovementSpeed.CalculateToTarget(0.f, DeltaTime, 0.01f);
         }
     }
 }

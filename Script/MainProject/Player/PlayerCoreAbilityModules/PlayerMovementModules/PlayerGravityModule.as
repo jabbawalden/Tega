@@ -11,10 +11,7 @@ class UPlayerGravityModule : UModule
     UFrameMovementComponent MoveComp;
     TArray<AActor> IgnoreActors;
  
-    float GroundOffsetTarget = 80.f;
     float Gravity;
-
-    bool bGrounded;
 
     void Setup() override
     {
@@ -25,10 +22,12 @@ class UPlayerGravityModule : UModule
 
     bool ShouldActivate() override
     {
-        if (MoveComp.IsGrounded())
-            return false;
+        return false;
 
-        return true;
+        // if (MoveComp.IsGrounded())
+        //     return false;
+
+        // return true;
     }
 
     bool ShouldDeactivate() override
@@ -58,12 +57,12 @@ class UPlayerGravityModule : UModule
         
         FVector Velocity;
 
-        FHitResult Hit;
-        FVector Start = Player.CharacterRoot.WorldLocation;
-        FVector End = Start + -FVector::UpVector * MoveComp.Velocity.Size();
-        System::SphereTraceSingle(Start, End, Player.SphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, IgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
+        // FHitResult Hit;
+        // FVector Start = Player.CharacterRoot.WorldLocation;
+        // FVector End = Start + -FVector::UpVector * MoveComp.Velocity.Size();
+        // System::SphereTraceSingle(Start, End, Player.SphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, IgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
         
         Velocity = FVector(0.f, 0.f, -Gravity * DeltaTime);
-        MoveComp.AddDeltaVelocityToFrame(Velocity);
+        MoveComp.AddVelocityToFrame(Velocity);
     }   
 }

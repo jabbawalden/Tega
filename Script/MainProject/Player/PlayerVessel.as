@@ -146,7 +146,7 @@ class APlayerVessel : APlayerModPawn
         PlayerController = Cast<APlayerController>(Gameplay::GetPlayerController(0));
         PlayerController.SetViewTargetWithBlend(PlayerCamera, 0.f);
 
-        FrameMovementComp.InitSphereComponent(SphereComp);
+        FrameMovementComp.InitWithSphereComponent(SphereComp);
 
         ApplyMovementSettings(DefaultMovementSettings, this, EPlayerSettingsPriority::Low);
         ApplyCameraSettings(DefaultCameraSettings, this, EPlayerSettingsPriority::Low);
