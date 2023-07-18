@@ -25,9 +25,9 @@ class UFrameMovementComponent : UActorComponent
     FMovementGravitySettings GravitySettings;
     float Gravity = GravitySettings.InitAmount;
 
-    FVector LastGroundHit;
-    bool bStepUpGroundCheckQueryAvailable;
-    bool bStepUpGroundCheckApplicable;
+    // FVector LastGroundHit;
+    // bool bStepUpGroundCheckQueryAvailable;
+    // bool bStepUpGroundCheckApplicable;
 
     //Velocity collection this frame
     TArray<FVector> VelocityCollection;
@@ -43,9 +43,10 @@ class UFrameMovementComponent : UActorComponent
 
     TArray<AActor> FrameMoveIgnoreActors;
 
-    TArray<FHitResult> FrameHits;
-    FVector MoveThisFrame;
-    FVector PredictedMove;
+    private TArray<FHitResult> FrameHits;
+    private FVector MoveThisFrame;
+    private FVector PredictedMove;
+    private FVector InternalGroundPlane;
 
     bool bTEMPHaveDrawn;
 
@@ -53,24 +54,25 @@ class UFrameMovementComponent : UActorComponent
     private bool bPreviouslyGrounded;
     private FVector TotalVelocityPreCalc;
 
+    private int MaxMovementIteration = 5;
+
     bool bDeltaVelocityApplied;
     bool bImpulseApplied;
-
-    bool TEMPDebugDrew;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
+        //Adds calculation module that ticks after CalculateMovement
         AModActor ModActor = Cast<AModActor>(Owner);
-        APlayerModPawn PlayerPawn = Cast<APlayerModPawn>(Owner);
+        APlayerModPawn ModPawn = Cast<APlayerModPawn>(Owner);
         
         MakeMovementModule = Cast<UFrameCalculateMoveModule>(NewObject(this, UFrameCalculateMoveModule::StaticClass())); 
 
         if (ModActor != nullptr)
             ModActor.AddModule(MakeMovementModule);
 
-        if (PlayerPawn != nullptr)
-            PlayerPawn.AddModule(MakeMovementModule);
+        if (ModPawn != nullptr)
+            ModPawn.AddModule(MakeMovementModule);
 
         FrameMoveIgnoreActors.Add(Owner);
     }
@@ -80,24 +82,25 @@ class UFrameMovementComponent : UActorComponent
         PlayerSphereComp = Sphere;
     }
 
+    //Potentially handle capsules later on
     void InitWithCapsuleComponent(UCapsuleComponent Capsule)
     {
 
     }
 
+    //Add velocity to frame - assumes this is a delta velocity
     void AddVelocityToFrame(FVector NewVelocity)
     {
         VelocityCollection.Add(NewVelocity);
         bDeltaVelocityApplied = true;
     }
 
-    //Runs internally?
-    //May need solution if gravity too hard to make smooth
-    void ApplyGravity(float DeltaTime)
+    //Runs internally
+    private void ApplyGravity(float DeltaTime)
     {
         if (!bIsGrounded)
         {
-            PrintToScreen(f"{Gravity=}");
+            // PrintToScreen(f"{Gravity=}");
            
             if (bPreviouslyGrounded)
                 Gravity = GravitySettings.InitAmount;
@@ -111,14 +114,17 @@ class UFrameMovementComponent : UActorComponent
         bPreviouslyGrounded = bIsGrounded;
     }
 
+    //Disable gravity
     void DisableGravity()
     {
         bApplyGravity = false;
     }
 
+    //Enable gravity and reset minimum gravity value
     void EnableGravity()
     {
         bApplyGravity = true;
+        Gravity = GravitySettings.InitAmount;
     }
 
     void AddImpulse(FVector Impulse)
@@ -128,6 +134,7 @@ class UFrameMovementComponent : UActorComponent
     }
 
     // Runs in RunMovement group
+    // If not using module system, run manually once you have calculated your moves
     void Update(float DeltaTime)
     {
         if (bApplyGravity)
@@ -173,94 +180,94 @@ class UFrameMovementComponent : UActorComponent
             bIsGrounded = false;
 
             int Iterations = 0;
-            int MaxIterations = 15;
 
-            FVector DeltaToMove = Velocity;
+            // //SECOND METHOD - taken from Emil... Maybe more ideal for character movement??
+            // //Issue is that player cannot slide against wall when up against an angled down wall
+            // FVector DeltaToMove = Velocity;
 
+            // FHitResult Hit;
+
+            // for (int i = 0; i < MaxIterations; i++)
+            // {
+            //     Owner.AddActorWorldOffset(DeltaToMove, true, Hit, false);
+            //     DeltaToMove -= DeltaToMove * Hit.Time;
+
+            //     if (!bIsGrounded)
+            //     {
+            //         bIsGrounded = GroundedCheck(Hit);
+            //     }
+
+            //     if (Hit.bBlockingHit)
+            //     {
+            //         FVector DepentrationDelta = Hit.Normal * Hit.Normal.DotProduct(Velocity);
+            //         Velocity -= DepentrationDelta;
+            //     }
+
+            //     if (DeltaToMove.IsNearlyZero())
+            //         break;
+
+            //     DeltaToMove -= Hit.Normal * DeltaToMove.DotProduct(Hit.Normal);
+            // }
+
+            // Owner.ActorLocation += Velocity * DeltaTime;
+            
+            //MORE PHYSICSY-ISH METHOD
+            //Kind of a half way solution so not pure physics, but has some elements of it, and is less rigid with how it solves different impacts
             FHitResult Hit;
+            System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
+            FVector TraceDirection = Velocity.GetSafeNormal();
 
-            for (int i = 0; i < MaxIterations; i++)
+            while (Iterations < MaxMovementIteration && Hit.bBlockingHit)
             {
-                Owner.AddActorWorldOffset(DeltaToMove, true, Hit, false);
-                DeltaToMove -= DeltaToMove * Hit.Time;
+                Iterations++;
 
                 if (!bIsGrounded)
                 {
                     bIsGrounded = GroundedCheck(Hit);
                 }
+                
+                // FVector CorrectedNormal = MainHit.ImpactNormal;
+                FVector DepenetrationOffset;
 
-                if (Hit.bBlockingHit)
+                // Maybe solve collisions differently - probably more relevant for character specific movement (step ups etc.)
+                // switch(MovementCollisionSolveData::GetCollisionType(MainHit))
+                // {
+                //     case EGetMovementCollisionType::Ground:
+                //         DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
+                //         break;
+                //     case EGetMovementCollisionType::Wall:
+                //         CorrectedNormal = CorrectedNormal.ConstrainToPlane(FVector::UpVector);
+                //         break;
+                // }
+
+                DepenetrationOffset = GetDepenetrationOffset(PredictedMove, Hit.ImpactNormal, Hit.ImpactPoint, DeltaTime);
+
+                TraceDirection = Hit.ImpactNormal;  
+                PredictedMove += DepenetrationOffset;
+
+                for (FVector& CurrentVelocity : ImuplseCollection)
                 {
-                    FVector DepentrationDelta = Hit.Normal * Hit.Normal.DotProduct(Velocity);
-                    Velocity -= DepentrationDelta;
+                    FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
+                    CurrentVelocity -= RemoveImpulse;
                 }
 
-                if (DeltaToMove.IsNearlyZero())
-                    break;
-
-                DeltaToMove -= Hit.Normal * DeltaToMove.DotProduct(Hit.Normal);
+                // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
+                
+                //Must trace slightly smaller than the current radius so as not to get the same wall hit we just corrected against
+                //Janky solution tbh, but seems to be stable with current setup
+                System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
             }
-            
 
-            // FHitResult MainHit;
-            // System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
-            // FVector TraceDirection = Velocity.GetSafeNormal();
-
-            // //Still vulnerable to dashing through messy collision when at 15 frames
-            // //But best version of the system so far.
-            // while (Iterations < MaxIterations && MainHit.bBlockingHit)
-            // {
-            //     Iterations++;
-
-            //     if (!bIsGrounded)
-            //     {
-            //         bIsGrounded = GroundedCheck(MainHit);
-            //     }
-                
-            //     FVector CorrectedNormal = MainHit.ImpactNormal;
-            //     FVector DepenetrationOffset;
-
-            //     DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
-
-            //     // switch(MovementCollisionSolveData::GetCollisionType(MainHit))
-            //     // {
-            //     //     case EGetMovementCollisionType::Ground:
-            //     //         DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
-            //     //         break;
-            //     //     case EGetMovementCollisionType::Wall:
-            //     //         CorrectedNormal = CorrectedNormal.ConstrainToPlane(FVector::UpVector);
-            //     //         DepenetrationOffset = GetWallDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
-            //     //         break;
-            //     // }
-
-            //     // FVector DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
-            //     // PrintToScreen("DepenetrationOffset: " + DepenetrationOffset);
-
-            //     TraceDirection = CorrectedNormal;  
-            //     PredictedMove += DepenetrationOffset;
-
-            //     for (FVector& CurrentVelocity : ImuplseCollection)
-            //     {
-            //         FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
-            //         CurrentVelocity -= RemoveImpulse;
-            //     }
-
-            //     // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
-                
-            //     //Must trace slightly smaller than the current radiius so as not to get the same wall hit
-            //     System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, MainHit, true, FLinearColor::Red);
-            // }
-            // Owner.ActorLocation = PredictedMove;
-
-            // Owner.ActorLocation += Velocity;
+            Owner.ActorLocation = PredictedMove;
 
             PrintToScreen(f"{Iterations=}");
             
-            if (!bIsGrounded)
-            {
-                bStepUpGroundCheckApplicable = false;
-                bStepUpGroundCheckQueryAvailable = false;
-            }
+            // Old Step Up logic for character movement
+            // if (!bIsGrounded)
+            // {
+            //     bStepUpGroundCheckApplicable = false;
+            //     bStepUpGroundCheckQueryAvailable = false;
+            // }
 
             // if (bStepUpGroundCheckQueryAvailable)
             //     LastGroundHit = SaveNextGroundHit;
@@ -270,6 +277,7 @@ class UFrameMovementComponent : UActorComponent
 
             //Sliding off edges
             // if (!bStepUpApplied)
+
             if (bApplyCornerSlide)
                 RunCornerSlideCheck();
         }
@@ -285,45 +293,35 @@ class UFrameMovementComponent : UActorComponent
 
     FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
     {
+        //Total distance between impact point and predicted move location
         float Size = (ImpactPoint - CurrentPredictedMove).Size();
-        float SizeBeforeDotCheck = Size;
 
-        // FVector Direction = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
-        // float NormalDot = ImpactNormal.DotProduct(Direction);
-        // if (NormalDot < 0.0)
-        // {
-        //     Size = -Size;
-        // }
-        
-        //Intitialize depth
-        float Depth = PlayerSphereComp.SphereRadius - Size;
-        // float Depth = Hit.Distance;
-
-        if (Depth > 50.0 && !TEMPDebugDrew)
+        //Check if center point of predicted move has passed the collision point - if so, reverse size so that we get the correct depth calculation
+        FVector HitToOrigin = (Owner.ActorLocation - ImpactPoint).GetSafeNormal();
+        FVector HitToPredicted = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
+        float NormalDot = HitToOrigin.DotProduct(HitToPredicted);
+        if (NormalDot < 0.0)
         {
-            Print(f"{Depth=}");
-            // Print(f"{NormalDot=}");
-            Print(f"{SizeBeforeDotCheck=}");
-            Print(f"{Size=}");
-            System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 500.0, 10.0, FLinearColor::Red, 500.0, 2.5);
-            System::DrawDebugSphere(Owner.ActorLocation, PlayerSphereComp.SphereRadius, 12, FLinearColor::Red, 500, 2);
-            System::DrawDebugArrow(Owner.ActorLocation, CurrentPredictedMove, 10.0, FLinearColor::Green, 500.0, 2.5);
-            System::DrawDebugSphere(CurrentPredictedMove, PlayerSphereComp.SphereRadius, 12, FLinearColor::Green, 500, 1);
-            TEMPDebugDrew = true;
+            Size = -Size;
         }
-        //If radius to original position constrained to hit normal is less than sphere radius, then use this instead to account for being along edges or ground from a non completely vertical angle
-        // float ImpactDotUpCheck = ImpactNormal.DotProduct(FVector::UpVector);
-        // if (RadiusToConstrainedCenter < PlayerCollisionComp.SphereRadius && ImpactDotUpCheck > MovementCollisionSolveData::MinWalkableDot)
-        //     Depth = RadiusToConstrainedCenter - Size;
+        
+        //Depth is radius minus size
+        float Depth = PlayerSphereComp.SphereRadius - Size;
 
+        //Offset amount to remove from predicted move delta
         FVector PenetrationOffset = ImpactNormal * Depth;
 
+        //Safety check - if depth is negative for some reason, return 0 for offset
+        //This may not be needed anymore? Can't remember use case
         if (Depth <= 0.0)
             PenetrationOffset = FVector(0.0);
+
+        System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 300.0, 25.0, FLinearColor::Red, 0.0, 5.0);
 
         return PenetrationOffset;
     }
 
+    //Adds corner slide offset to sphere
     FVector GetCornerSlideOffset(float DeltaTime)
     {
         //Deals with going over slanted corners
@@ -348,9 +346,10 @@ class UFrameMovementComponent : UActorComponent
             CornerSlideForce = Math::FInterpConstantTo(CornerSlideForce, 0.0, DeltaTime, CornerSlideInterp);
         }
 
-        return LastSavedSlideDirection * CornerSlideForce * DeltaTime;;
+        return LastSavedSlideDirection * CornerSlideForce * DeltaTime;
     }
 
+    //Set slide off corner movement
     void RunCornerSlideCheck()
     {
         FHitResult Hit;
@@ -375,7 +374,8 @@ class UFrameMovementComponent : UActorComponent
         }
     }
 
-    bool GroundedCheck(FHitResult Hit)
+    //Set internal variable during movement iterations
+    private bool GroundedCheck(FHitResult Hit)
     {
         if (Hit.bBlockingHit)
         {
@@ -392,16 +392,18 @@ class UFrameMovementComponent : UActorComponent
         return false;
     }
 
+    //Grounded check
     bool IsGrounded()
     {
         return bIsGrounded;
     }
 
+    //For dashes, ground movement etc. if we want actor to move along plane with input
     FVector GetPlaneCorrectedVelocity(FVector CurrentVelocity)
     {
-        if (IsGrounded() && GetGroundPlane().Size() > 0.0)
+        if (IsGrounded() && GetGroundPlane(CurrentVelocity.GetSafeNormal()).Size() > 0.0)
         {
-            FVector UpV = GetGroundPlane();
+            FVector UpV = GetGroundPlane(CurrentVelocity.GetSafeNormal());
             FVector RightV = UpV.CrossProduct(CurrentVelocity);
             FVector ForwardV = RightV.CrossProduct(UpV);
 
@@ -412,16 +414,68 @@ class UFrameMovementComponent : UActorComponent
     }
 
     //Traces for and returns ground plane normal - sphere trace however is weird. Change this later to line trace
-    FVector GetGroundPlane()
+    FVector GetGroundPlane(FVector MovementDirection)
     {
         FHitResult Hit;
         System::SphereTraceSingle(Owner.ActorLocation, Owner.ActorLocation - Owner.ActorUpVector, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
 
         if (Hit.bBlockingHit)
         {
-            return Hit.ImpactNormal;
+            //If we hit a corner, send last valid ground plane instead, or world up (assumed ground plane) if current internal ground plane is not yet set
+            if (ImpactedCorner(MovementDirection, Hit))
+            {
+                if (InternalGroundPlane.Size() == 0.0)
+                    return FVector::UpVector;
+
+                return InternalGroundPlane;
+            }
+            
+            InternalGroundPlane = Hit.ImpactNormal;
+            return InternalGroundPlane;
+            // System::DrawDebugArrow(Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 250.0), 25.0, FLinearColor::Red, 10.0, 5.0);
+            // return Hit.ImpactNormal;
         }    
 
         return FVector(0.0);  
+    }
+
+    bool ImpactedCorner(FVector MovementDirection, FHitResult Hit)
+    {
+        float ImpactDot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
+
+        if (ImpactDot < 0.995 && ImpactDot > 0.0)
+        {
+            //CHECK IF CORNER
+
+            //Trace from top
+            FVector TraceDownStart = Hit.ImpactPoint + (MovementDirection * 1) + (FVector::UpVector * 2);
+            FHitResult CornerDownCheck;
+            System::LineTraceSingle(TraceDownStart, TraceDownStart - FVector::UpVector * 2.1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, CornerDownCheck, true);
+
+            //Trace to see if ground gets in the way before reaching forward check - if not, then corner check is not applicable as we are likely on slope
+            FVector ForwardApplicableStart = TraceDownStart - (MovementDirection * 3);
+            FHitResult ForwardApplicableCheck;
+            System::LineTraceSingle(ForwardApplicableStart, ForwardApplicableStart - FVector::UpVector * 3, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, ForwardApplicableCheck, true);
+
+            //Trace from forward
+            FVector TraceForwardStart = Hit.ImpactPoint - (MovementDirection * 2) - (FVector::UpVector * 1);
+            FHitResult CornerForwardCheck;
+            System::LineTraceSingle(TraceForwardStart, TraceForwardStart + MovementDirection * 2.1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, CornerForwardCheck, true);
+
+            if (CornerDownCheck.bBlockingHit && CornerForwardCheck.bBlockingHit && !ForwardApplicableCheck.bBlockingHit)
+            {
+                float CornerDotCheck = CornerDownCheck.ImpactNormal.DotProduct(CornerForwardCheck.ImpactNormal);
+
+                if (CornerDotCheck <= 0.5)
+                {
+                    System::DrawDebugArrow(TraceDownStart, CornerDownCheck.ImpactPoint, 0.5, FLinearColor::Blue, 10.0, 0.5);
+                    System::DrawDebugArrow(TraceForwardStart, CornerForwardCheck.ImpactPoint, 0.5, FLinearColor::Red, 10.0, 0.5);
+                    System::DrawDebugArrow(Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 200.0, 1.0, FLinearColor::Green, 10.0, 1.0);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -19,6 +19,8 @@ class UPlayerAirBoostModule : UModule
 
     bool ShouldActivate() override
     {
+        return false;
+        
         if (!Player.WasInputActioned(InputNames::FaceButtonBottom))
             return false;
 
