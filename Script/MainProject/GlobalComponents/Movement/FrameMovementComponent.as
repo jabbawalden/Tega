@@ -175,112 +175,114 @@ class UFrameMovementComponent : UActorComponent
 
         bShouldCornerApplySlide = false;
 
-        if (Owner.ActorLocation != PredictedMove)
+        // if (Owner.ActorLocation != PredictedMove)
+        // {
+        bIsGrounded = false;
+
+
+        // //SECOND METHOD - taken from Emil... Maybe more ideal for character movement??
+        // //Issue is that player cannot slide against wall when up against an angled down wall
+        // FVector DeltaToMove = Velocity;
+
+        // FHitResult Hit;
+
+        // for (int i = 0; i < MaxIterations; i++)
+        // {
+        //     Owner.AddActorWorldOffset(DeltaToMove, true, Hit, false);
+        //     DeltaToMove -= DeltaToMove * Hit.Time;
+
+        //     if (!bIsGrounded)
+        //     {
+        //         bIsGrounded = GroundedCheck(Hit);
+        //     }
+
+        //     if (Hit.bBlockingHit)
+        //     {
+        //         FVector DepentrationDelta = Hit.Normal * Hit.Normal.DotProduct(Velocity);
+        //         Velocity -= DepentrationDelta;
+        //     }
+
+        //     if (DeltaToMove.IsNearlyZero())
+        //         break;
+
+        //     DeltaToMove -= Hit.Normal * DeltaToMove.DotProduct(Hit.Normal);
+        // }
+
+        // Owner.ActorLocation += Velocity * DeltaTime;
+        
+        
+        //MORE PHYSICSY-ISH METHOD
+        //Kind of a half way solution so not pure physics, but has some elements of it, and is less rigid with how it solves different impacts
+        int Iterations = 0;
+
+        FHitResult Hit;
+        System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
+        FVector TraceDirection = Velocity.GetSafeNormal();
+
+        while (Iterations < MaxMovementIteration && Hit.bBlockingHit)
         {
-            bIsGrounded = false;
+            Iterations++;
 
-            int Iterations = 0;
+            if (!bIsGrounded)
+            {
+                bIsGrounded = GroundedCheck(Hit);
+            }
+            
+            // FVector CorrectedNormal = MainHit.ImpactNormal;
+            FVector DepenetrationOffset;
 
-            // //SECOND METHOD - taken from Emil... Maybe more ideal for character movement??
-            // //Issue is that player cannot slide against wall when up against an angled down wall
-            // FVector DeltaToMove = Velocity;
-
-            // FHitResult Hit;
-
-            // for (int i = 0; i < MaxIterations; i++)
+            // Maybe solve collisions differently - probably more relevant for character specific movement (step ups etc.)
+            // switch(MovementCollisionSolveData::GetCollisionType(MainHit))
             // {
-            //     Owner.AddActorWorldOffset(DeltaToMove, true, Hit, false);
-            //     DeltaToMove -= DeltaToMove * Hit.Time;
-
-            //     if (!bIsGrounded)
-            //     {
-            //         bIsGrounded = GroundedCheck(Hit);
-            //     }
-
-            //     if (Hit.bBlockingHit)
-            //     {
-            //         FVector DepentrationDelta = Hit.Normal * Hit.Normal.DotProduct(Velocity);
-            //         Velocity -= DepentrationDelta;
-            //     }
-
-            //     if (DeltaToMove.IsNearlyZero())
+            //     case EGetMovementCollisionType::Ground:
+            //         DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
             //         break;
-
-            //     DeltaToMove -= Hit.Normal * DeltaToMove.DotProduct(Hit.Normal);
+            //     case EGetMovementCollisionType::Wall:
+            //         CorrectedNormal = CorrectedNormal.ConstrainToPlane(FVector::UpVector);
+            //         break;
             // }
 
-            // Owner.ActorLocation += Velocity * DeltaTime;
-            
-            //MORE PHYSICSY-ISH METHOD
-            //Kind of a half way solution so not pure physics, but has some elements of it, and is less rigid with how it solves different impacts
-            FHitResult Hit;
-            System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
-            FVector TraceDirection = Velocity.GetSafeNormal();
+            DepenetrationOffset = GetDepenetrationOffset(PredictedMove, Hit.ImpactNormal, Hit.ImpactPoint, DeltaTime);
 
-            while (Iterations < MaxMovementIteration && Hit.bBlockingHit)
+            TraceDirection = Hit.ImpactNormal;  
+            PredictedMove += DepenetrationOffset;
+
+            for (FVector& CurrentVelocity : ImuplseCollection)
             {
-                Iterations++;
-
-                if (!bIsGrounded)
-                {
-                    bIsGrounded = GroundedCheck(Hit);
-                }
-                
-                // FVector CorrectedNormal = MainHit.ImpactNormal;
-                FVector DepenetrationOffset;
-
-                // Maybe solve collisions differently - probably more relevant for character specific movement (step ups etc.)
-                // switch(MovementCollisionSolveData::GetCollisionType(MainHit))
-                // {
-                //     case EGetMovementCollisionType::Ground:
-                //         DepenetrationOffset = GetDepenetrationOffset(PredictedMove, CorrectedNormal, MainHit.ImpactPoint, DeltaTime);
-                //         break;
-                //     case EGetMovementCollisionType::Wall:
-                //         CorrectedNormal = CorrectedNormal.ConstrainToPlane(FVector::UpVector);
-                //         break;
-                // }
-
-                DepenetrationOffset = GetDepenetrationOffset(PredictedMove, Hit.ImpactNormal, Hit.ImpactPoint, DeltaTime);
-
-                TraceDirection = Hit.ImpactNormal;  
-                PredictedMove += DepenetrationOffset;
-
-                for (FVector& CurrentVelocity : ImuplseCollection)
-                {
-                    FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
-                    CurrentVelocity -= RemoveImpulse;
-                }
-
-                // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
-                
-                //Must trace slightly smaller than the current radius so as not to get the same wall hit we just corrected against
-                //Janky solution tbh, but seems to be stable with current setup
-                System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
+                FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
+                CurrentVelocity -= RemoveImpulse;
             }
 
-            Owner.ActorLocation = PredictedMove;
-
-            PrintToScreen(f"{Iterations=}");
+            // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
             
-            // Old Step Up logic for character movement
-            // if (!bIsGrounded)
-            // {
-            //     bStepUpGroundCheckApplicable = false;
-            //     bStepUpGroundCheckQueryAvailable = false;
-            // }
-
-            // if (bStepUpGroundCheckQueryAvailable)
-            //     LastGroundHit = SaveNextGroundHit;
-
-            // PrintToScreen(f"{bStepUpGroundCheckQueryAvailable=}");
-            // PrintToScreen(f"{bStepUpGroundCheckApplicable=}");
-
-            //Sliding off edges
-            // if (!bStepUpApplied)
-
-            if (bApplyCornerSlide)
-                RunCornerSlideCheck();
+            //Must trace slightly smaller than the current radius so as not to get the same wall hit we just corrected against
+            //Janky solution tbh, but seems to be stable with current setup
+            System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
         }
+
+        Owner.ActorLocation = PredictedMove;
+
+        // PrintToScreen(f"{Iterations=}");
+        
+        // Old Step Up logic for character movement
+        // if (!bIsGrounded)
+        // {
+        //     bStepUpGroundCheckApplicable = false;
+        //     bStepUpGroundCheckQueryAvailable = false;
+        // }
+
+        // if (bStepUpGroundCheckQueryAvailable)
+        //     LastGroundHit = SaveNextGroundHit;
+
+        // PrintToScreen(f"{bStepUpGroundCheckQueryAvailable=}");
+        // PrintToScreen(f"{bStepUpGroundCheckApplicable=}");
+
+        //Sliding off edges
+        // if (!bStepUpApplied)
+
+        if (bApplyCornerSlide)
+            RunCornerSlideCheck();
+        // }
 
         MoveThisFrame = Owner.ActorLocation - LastLoc;
 
