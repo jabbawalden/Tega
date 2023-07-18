@@ -9,7 +9,7 @@ class UPlayerAirBoostModule : UModule
     UFrameMovementComponent MoveComp;
 
     float Impulse;
-    float ImpulseTarget = 30.f;
+    float ImpulseTarget = 20.f;
 
     void Setup() override
     {
@@ -19,7 +19,7 @@ class UPlayerAirBoostModule : UModule
 
     bool ShouldActivate() override
     {
-        return false;
+        // return false;
         
         if (!Player.WasInputActioned(InputNames::FaceButtonBottom))
             return false;

@@ -1,7 +1,11 @@
 class UFrameMovementComponent : UActorComponent
 {
+    //INITIATE
     UFrameCalculateMoveModule MakeMovementModule;
+    //Player sphere component
+    USphereComponent PlayerSphereComp;
 
+    //Corner Slide
     UPROPERTY()
     bool bApplyCornerSlide = true;
     private bool bShouldCornerApplySlide;
@@ -29,35 +33,25 @@ class UFrameMovementComponent : UActorComponent
     // bool bStepUpGroundCheckQueryAvailable;
     // bool bStepUpGroundCheckApplicable;
 
+    //VELOCITIES
     //Velocity collection this frame
     TArray<FVector> VelocityCollection;
     FVector Velocity;
     //Impulse collections this frame 
     TArray<FVector> ImuplseCollection;
     //Drag for impulses
-    float ImpulseReduction = 0.975f;
-
-    //Player sphere component
-    //To make more generic, this will need to be setup later for applying different collision types
-    USphereComponent PlayerSphereComp;
-
+    float ImpulseDrag = 0.98f;
     TArray<AActor> FrameMoveIgnoreActors;
 
-    private TArray<FHitResult> FrameHits;
+    //MOVEMENT INTERNAL DATA
     private FVector MoveThisFrame;
     private FVector PredictedMove;
     private FVector InternalGroundPlane;
-
-    bool bTEMPHaveDrawn;
-
+    private int MaxMovementIteration = 5;
+    
+    //GROUNDED
     private bool bIsGrounded;
     private bool bPreviouslyGrounded;
-    private FVector TotalVelocityPreCalc;
-
-    private int MaxMovementIteration = 5;
-
-    bool bDeltaVelocityApplied;
-    bool bImpulseApplied;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -92,7 +86,6 @@ class UFrameMovementComponent : UActorComponent
     void AddVelocityToFrame(FVector NewVelocity)
     {
         VelocityCollection.Add(NewVelocity);
-        bDeltaVelocityApplied = true;
     }
 
     //Runs internally
@@ -130,7 +123,6 @@ class UFrameMovementComponent : UActorComponent
     void AddImpulse(FVector Impulse)
     {
         ImuplseCollection.Add(Impulse);
-        bImpulseApplied = true;
     }
 
     // Runs in RunMovement group
@@ -154,7 +146,7 @@ class UFrameMovementComponent : UActorComponent
         for (FVector& CurrentVelocity : ImuplseCollection)
         {
             Impulses += CurrentVelocity;
-            CurrentVelocity *= ImpulseReduction;
+            CurrentVelocity *= ImpulseDrag;
 
             if (CurrentVelocity.Size() <= 0.025f)
                 ImuplsesToRemove.Add(CurrentVelocity);
@@ -178,7 +170,6 @@ class UFrameMovementComponent : UActorComponent
         // if (Owner.ActorLocation != PredictedMove)
         // {
         bIsGrounded = false;
-
 
         // //SECOND METHOD - taken from Emil... Maybe more ideal for character movement??
         // //Issue is that player cannot slide against wall when up against an angled down wall
@@ -288,17 +279,14 @@ class UFrameMovementComponent : UActorComponent
 
         VelocityCollection.Empty();
         ImuplsesToRemove.Empty();
-
-        bDeltaVelocityApplied = false;
-        bImpulseApplied = false;
     }
 
-    FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
+    private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
     {
         //Total distance between impact point and predicted move location
         float Size = (ImpactPoint - CurrentPredictedMove).Size();
 
-        //Check if center point of predicted move has passed the collision point - if so, reverse size so that we get the correct depth calculation
+        //Check if predicted move location has passed the collision point - if so, reverse size so that we get the correct depth calculation
         FVector HitToOrigin = (Owner.ActorLocation - ImpactPoint).GetSafeNormal();
         FVector HitToPredicted = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
         float NormalDot = HitToOrigin.DotProduct(HitToPredicted);
@@ -310,7 +298,7 @@ class UFrameMovementComponent : UActorComponent
         //Depth is radius minus size
         float Depth = PlayerSphereComp.SphereRadius - Size;
 
-        //Offset amount to remove from predicted move delta
+        //Offset amount to remove from predicted move
         FVector PenetrationOffset = ImpactNormal * Depth;
 
         //Safety check - if depth is negative for some reason, return 0 for offset
@@ -324,7 +312,7 @@ class UFrameMovementComponent : UActorComponent
     }
 
     //Adds corner slide offset to sphere
-    FVector GetCornerSlideOffset(float DeltaTime)
+    private FVector GetCornerSlideOffset(float DeltaTime)
     {
         //Deals with going over slanted corners
         if (bShouldCornerApplySlide)
@@ -334,9 +322,6 @@ class UFrameMovementComponent : UActorComponent
             FVector HitToPredicted = (PredictedMove - LastSlideImpactPoint).GetSafeNormal();
             FVector VRight = HitToPredicted.ConstrainToPlane(LastSlideImpactNormal).CrossProduct(HitToPredicted);
             FVector OffEdge = FVector::UpVector.CrossProduct(VRight); 
-            
-            //This one is for allowing for going in downward directions
-            // LastSavedSlideDirection = HitToPredicted.CrossProduct(VRight).GetSafeNormal();
             
             LastSavedSlideDirection = OffEdge.GetSafeNormal();
 
@@ -352,7 +337,7 @@ class UFrameMovementComponent : UActorComponent
     }
 
     //Set slide off corner movement
-    void RunCornerSlideCheck()
+    private void RunCornerSlideCheck()
     {
         FHitResult Hit;
 
@@ -382,15 +367,12 @@ class UFrameMovementComponent : UActorComponent
         if (Hit.bBlockingHit)
         {
             float Dot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
-            // PrintToScreen("Grounded Dot: " + Dot);
-            // PrintToScreen("Hit.ImpactNormal: " + Hit.ImpactNormal);
             if (Dot >= MovementCollisionSolveData::MinWalkableDot)
             {
                return true;
             }
         }
 
-        // PrintToScreen("No impact");
         return false;
     }
 
@@ -435,13 +417,12 @@ class UFrameMovementComponent : UActorComponent
             InternalGroundPlane = Hit.ImpactNormal;
             return InternalGroundPlane;
             // System::DrawDebugArrow(Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 250.0), 25.0, FLinearColor::Red, 10.0, 5.0);
-            // return Hit.ImpactNormal;
         }    
 
         return FVector(0.0);  
     }
 
-    bool ImpactedCorner(FVector MovementDirection, FHitResult Hit)
+    private bool ImpactedCorner(FVector MovementDirection, FHitResult Hit)
     {
         float ImpactDot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
 

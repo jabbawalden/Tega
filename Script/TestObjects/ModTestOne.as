@@ -1,4 +1,3 @@
-//TODO 
 class AModTestOne : AModActor
 {
     UPROPERTY(DefaultComponent, RootComponent)
@@ -7,17 +6,12 @@ class AModTestOne : AModActor
     UPROPERTY(DefaultComponent, Attach = Root)
     UStaticMeshComponent MeshComp;
 
-    UPROPERTY(DefaultComponent)
-    UModMovementComponent MoveComp;
-
     UPROPERTY()
     TSubclassOf<UModuleSheet> ModuleSheet;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        MoveComp.InitializeComponent(MeshComp);
-        
         // AddModuleSheet(ModuleSheet);
 
         // System::SetTimer(this, n"BlockATag", 1.f, false);
