@@ -1,5 +1,9 @@
 class UMovementInheritenceVolume : UBoxComponent
 {
+    default SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+    default LineThickness = 10.0;
+    default ShapeColor = FColor::Green;
+
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
@@ -17,6 +21,7 @@ class UMovementInheritenceVolume : UBoxComponent
         if (MoveComp != nullptr)
         {
             //Send over owning actor as the reference
+            MoveComp.AddInheritMovementActor(Owner);
         }
     }
 
@@ -29,6 +34,7 @@ class UMovementInheritenceVolume : UBoxComponent
         if (MoveComp != nullptr)
         {
             //Remove actor as the reference
+            MoveComp.RemoveInheritMovementActor(Owner);
         }
     }
 }

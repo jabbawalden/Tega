@@ -52,9 +52,7 @@ class APlayerVessel : APlayerModPawn
 
     //*** BASE COMPONENTS ***//
     UPROPERTY(DefaultComponent)
-    UInputComponent InputComp;
-    UPROPERTY(DefaultComponent)
-    UPlayerInputReaderComponent PlayerInputReaderComp;
+    UPlayerModInputComponent PlayerInputReaderComp;
     UPROPERTY(DefaultComponent)
     UFrameMovementComponent FrameMovementComp;
     UPROPERTY(DefaultComponent)

@@ -1,7 +1,5 @@
-class UPlayerInputReaderComponent : UActorComponent
+class UPlayerModInputComponent : UInputComponent
 {
-    UInputComponent InputComp;
-
     bool bLeftTriggerActioned;
     bool bLeftTriggerHeld;
 
@@ -36,30 +34,28 @@ class UPlayerInputReaderComponent : UActorComponent
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
-        InputComp = UInputComponent::Get(Owner);
+        BindAction(n"LeftTrigger", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"LeftTriggerAction"));
+        BindAction(n"LeftTrigger", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"LeftTriggerReleased"));
+        BindAction(n"RightTrigger", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"RightTriggerAction"));
+        BindAction(n"RightTrigger", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"RightTriggerReleased"));
+        BindAction(n"LeftShoulder", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"LeftShoulderAction"));
+        BindAction(n"LeftShoulder", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"LeftShoulderReleased"));
+        BindAction(n"RightShoulder", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"RightShoulderAction"));
+        BindAction(n"RightShoulder", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"RightShoulderReleased"));
 
-        InputComp.BindAction(n"LeftTrigger", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"LeftTriggerAction"));
-        InputComp.BindAction(n"LeftTrigger", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"LeftTriggerReleased"));
-        InputComp.BindAction(n"RightTrigger", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"RightTriggerAction"));
-        InputComp.BindAction(n"RightTrigger", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"RightTriggerReleased"));
-        InputComp.BindAction(n"LeftShoulder", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"LeftShoulderAction"));
-        InputComp.BindAction(n"LeftShoulder", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"LeftShoulderReleased"));
-        InputComp.BindAction(n"RightShoulder", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"RightShoulderAction"));
-        InputComp.BindAction(n"RightShoulder", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"RightShoulderReleased"));
-
-        InputComp.BindAction(n"FaceButtonTop", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonTopAction"));
-        InputComp.BindAction(n"FaceButtonTop", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonTopReleased"));
-        InputComp.BindAction(n"FaceButtonBottom", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonBottomAction"));
-        InputComp.BindAction(n"FaceButtonBottom", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonBottomReleased"));
-        InputComp.BindAction(n"FaceButtonLeft", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonLeftAction"));
-        InputComp.BindAction(n"FaceButtonLeft", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonLeftReleased"));
-        InputComp.BindAction(n"FaceButtonRight", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonRightAction"));
-        InputComp.BindAction(n"FaceButtonRight", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonRightReleased"));      
+        BindAction(n"FaceButtonTop", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonTopAction"));
+        BindAction(n"FaceButtonTop", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonTopReleased"));
+        BindAction(n"FaceButtonBottom", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonBottomAction"));
+        BindAction(n"FaceButtonBottom", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonBottomReleased"));
+        BindAction(n"FaceButtonLeft", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonLeftAction"));
+        BindAction(n"FaceButtonLeft", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonLeftReleased"));
+        BindAction(n"FaceButtonRight", EInputEvent::IE_Pressed, FInputActionHandlerDynamicSignature(this, n"ButtonRightAction"));
+        BindAction(n"FaceButtonRight", EInputEvent::IE_Released, FInputActionHandlerDynamicSignature(this, n"ButtonRightReleased"));      
         
-        InputComp.BindAxis(n"LeftMoveX", FInputAxisHandlerDynamicSignature(this, n"LeftMoveX"));    
-        InputComp.BindAxis(n"LeftMoveY", FInputAxisHandlerDynamicSignature(this, n"LeftMoveY"));    
-        InputComp.BindAxis(n"RightMoveX", FInputAxisHandlerDynamicSignature(this, n"RightMoveX"));    
-        InputComp.BindAxis(n"RightMoveY", FInputAxisHandlerDynamicSignature(this, n"RightMoveY"));    
+        BindAxis(n"LeftMoveX", FInputAxisHandlerDynamicSignature(this, n"LeftMoveX"));    
+        BindAxis(n"LeftMoveY", FInputAxisHandlerDynamicSignature(this, n"LeftMoveY"));    
+        BindAxis(n"RightMoveX", FInputAxisHandlerDynamicSignature(this, n"RightMoveX"));    
+        BindAxis(n"RightMoveY", FInputAxisHandlerDynamicSignature(this, n"RightMoveY"));    
     }
 
     UFUNCTION()

@@ -53,6 +53,9 @@ class UFrameMovementComponent : UActorComponent
     private bool bIsGrounded;
     private bool bPreviouslyGrounded;
 
+    //INHERIT MOVEMENT
+    private TArray<AActor> InheritMovementActors;
+
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
     {
@@ -218,6 +221,8 @@ class UFrameMovementComponent : UActorComponent
             {
                 bIsGrounded = GroundedCheck(Hit);
             }
+
+            UpdateTargetInheritMovementActor(Hit.Actor);
             
             // FVector CorrectedNormal = MainHit.ImpactNormal;
             FVector DepenetrationOffset;
@@ -460,5 +465,21 @@ class UFrameMovementComponent : UActorComponent
         }
 
         return false;
+    }
+
+    //Gets first valid hit for this frame only
+    void UpdateTargetInheritMovementActor(AActor HitActor)
+    {
+
+    }   
+
+    void AddInheritMovementActor(AActor Actor)
+    {
+        InheritMovementActors.AddUnique(Actor);
+    }
+
+    void RemoveInheritMovementActor(AActor Actor)
+    {
+        InheritMovementActors.Remove(Actor);
     }
 }
