@@ -54,7 +54,9 @@ class UFrameMovementComponent : UActorComponent
     private bool bPreviouslyGrounded;
 
     //INHERIT MOVEMENT
-    private TArray<AActor> InheritMovementActors;
+    // private TArray<AActor> InheritMovementActors;
+    private FInheritenceMovementData InheritenceData;
+    private FVector InheritedLocalOffset;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -168,6 +170,11 @@ class UFrameMovementComponent : UActorComponent
             PredictedMove += GetCornerSlideOffset(DeltaTime);
         }
 
+        if (InheritenceData.Actor != nullptr)
+        {
+            PredictedMove += InheritenceData.Comp.GetInheritedVelocity();
+        }
+
         bShouldCornerApplySlide = false;
 
         // if (Owner.ActorLocation != PredictedMove)
@@ -209,21 +216,34 @@ class UFrameMovementComponent : UActorComponent
         //Kind of a half way solution so not pure physics, but has some elements of it, and is less rigid with how it solves different impacts
         int Iterations = 0;
 
+        bool bInheritenceHitMade = false;
+
         FHitResult Hit;
         System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
         FVector TraceDirection = Velocity.GetSafeNormal();
 
+        FVector InheritenceGroundImpact;
+
         while (Iterations < MaxMovementIteration && Hit.bBlockingHit)
         {
             Iterations++;
+            bool bWasGroundHit = false;
 
             if (!bIsGrounded)
             {
                 bIsGrounded = GroundedCheck(Hit);
+                bWasGroundHit = true;
             }
 
-            UpdateTargetInheritMovementActor(Hit.Actor);
-            
+            if (!bInheritenceHitMade && bWasGroundHit)
+            {
+                bInheritenceHitMade = UpdateTargetInheritMovementActor(Hit.Actor);
+            }
+
+            //Set inheritence ground impact this frame   
+            if (MovementCollisionSolveData::GetCollisionType(Hit) == EGetMovementCollisionType::Ground)
+                InheritenceGroundImpact = Hit.ImpactPoint;
+
             // FVector CorrectedNormal = MainHit.ImpactNormal;
             FVector DepenetrationOffset;
 
@@ -258,23 +278,12 @@ class UFrameMovementComponent : UActorComponent
 
         Owner.ActorLocation = PredictedMove;
 
+        if (InheritenceData.Comp != nullptr)
+        {
+            InheritenceData.Comp.SetInheritenceData(Owner.ActorLocation);
+        }
+
         // PrintToScreen(f"{Iterations=}");
-        
-        // Old Step Up logic for character movement
-        // if (!bIsGrounded)
-        // {
-        //     bStepUpGroundCheckApplicable = false;
-        //     bStepUpGroundCheckQueryAvailable = false;
-        // }
-
-        // if (bStepUpGroundCheckQueryAvailable)
-        //     LastGroundHit = SaveNextGroundHit;
-
-        // PrintToScreen(f"{bStepUpGroundCheckQueryAvailable=}");
-        // PrintToScreen(f"{bStepUpGroundCheckApplicable=}");
-
-        //Sliding off edges
-        // if (!bStepUpApplied)
 
         if (bApplyCornerSlide)
             RunCornerSlideCheck();
@@ -284,6 +293,8 @@ class UFrameMovementComponent : UActorComponent
 
         VelocityCollection.Empty();
         ImuplsesToRemove.Empty();
+
+        PrintToScreen(f"{InheritenceData.Actor=}");
     }
 
     private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
@@ -467,19 +478,55 @@ class UFrameMovementComponent : UActorComponent
         return false;
     }
 
-    //Gets first valid hit for this frame only
-    void UpdateTargetInheritMovementActor(AActor HitActor)
+    //Gets valid hit (always defaults to last valid hit made)
+    //Return true if we were updated
+    bool UpdateTargetInheritMovementActor(AActor HitActor)
     {
+        // auto Vol = UMovementInheritenceVolume::Get(HitActor);
+        auto Comp = UMovementInheritenceComponent::Get(HitActor);
 
+        if (Comp != nullptr) 
+        {
+            if (InheritenceData.Comp != Comp)
+            {
+                InheritenceData.Actor = HitActor;
+                InheritenceData.Comp = Comp;
+                return true;
+            }
+
+            return false;
+        }
+        
+        //set nullptr
+        InheritenceData.Actor = nullptr;
+        InheritenceData.Comp = nullptr;
+        return false;
     }   
 
-    void AddInheritMovementActor(AActor Actor)
+    //If Inheritence actor,
+        //get delta and apply to predicted location
+    //If no inheritence actor
+        //Find based on ground hits
+            //Found
+    //If inheritence actor
+        //Check for others based on ground hits
+            //If new one, switch and reset data
+            //If none, set to nullptr
+
+    //Rework logic later to save offset and gradually remove inheritence offset while middair and completely remove when ground impacting a non inheritence actor
+
+    void UpdateInheritenceData()
     {
-        InheritMovementActors.AddUnique(Actor);
+
     }
 
-    void RemoveInheritMovementActor(AActor Actor)
-    {
-        InheritMovementActors.Remove(Actor);
-    }
+    // void AddInheritMovementActor(AActor Actor)
+    // {
+    //     InheritMovementActors.AddUnique(Actor);
+    // }
+
+    // void RemoveInheritMovementActor(AActor Actor)
+    // {
+    //     InheritMovementActors.Remove(Actor);
+    // }
 }

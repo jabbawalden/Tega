@@ -69,7 +69,7 @@ class UModule : UObject
     }
 
     // //module game mode runs this to check for activations 
-    bool CheckShouldActivate()
+    bool CheckShouldActivate() 
     {
         if (bIsBlocked)
             return false;

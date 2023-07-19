@@ -29,3 +29,15 @@ struct FMovementGravitySettings
     UPROPERTY()
     float GravityAcceleration = 1600.f;
 }
+
+struct FInheritenceMovementData
+{
+    UPROPERTY()
+    FVector LocalOffset;
+
+    UPROPERTY()
+    AActor Actor;
+
+    UPROPERTY()
+    UMovementInheritenceComponent Comp;
+}

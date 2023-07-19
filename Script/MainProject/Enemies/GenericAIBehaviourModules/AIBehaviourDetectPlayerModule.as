@@ -16,7 +16,7 @@ class UAIBehaviourDetectPlayerModule : UModule
         IgnoreActors.Add(Owner);
     }
 
-    bool ShouldActivate() override
+    bool ShouldActivate() override 
     {
         if (BehaviourComp == nullptr)
             return false;
