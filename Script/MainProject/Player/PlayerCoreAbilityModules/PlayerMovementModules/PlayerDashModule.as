@@ -70,11 +70,15 @@ class UPlayerDashModule : UModule
     {
         DashTime -= DeltaTime;
 
+        PrintToScreen(f"{DashTime=}");
+
         if (Player.GetStickVector(InputNames::LeftStickMovement).Size() != 0.f)
             DashDirectionTarget = Player.GetStickVector(InputNames::LeftStickMovement);
 
         DashDirectionCurrent = Math::VInterpTo(DashDirectionCurrent, DashDirectionTarget, DeltaTime, 0.5f);
         DashDirectionCurrent = MoveComp.GetPlaneCorrectedVelocity(DashDirectionCurrent);
+
+        // PrintToScreen(f"{DashDirectionCurrent=}");
 
         DashVelocity = DashDirectionCurrent * DashSpeed * DeltaTime;
         MoveComp.AddVelocityToFrame(DashVelocity);

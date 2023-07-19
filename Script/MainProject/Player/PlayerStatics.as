@@ -39,11 +39,11 @@ struct FPlayerMovementSettings
     UPROPERTY()
     float MoveSpeed = 1400.f;
     UPROPERTY()
-    float DashSpeed = 4000.f;
+    float DashSpeed = 3800.f;
     UPROPERTY()
-    float DashDuration = 0.1f;
+    float DashDuration = 0.15f;
     UPROPERTY()
-    float DashDecceleration = 8000.f;
+    float DashDecceleration = 15000.f;
     UPROPERTY()
     float DashRecoveryTime = 0.4f;
     UPROPERTY()

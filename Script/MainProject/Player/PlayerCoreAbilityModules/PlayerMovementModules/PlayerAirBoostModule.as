@@ -9,7 +9,7 @@ class UPlayerAirBoostModule : UModule
     UFrameMovementComponent MoveComp;
 
     float Impulse;
-    float ImpulseTarget = 20.f;
+    float ImpulseTarget = 250.f;
 
     void Setup() override
     {

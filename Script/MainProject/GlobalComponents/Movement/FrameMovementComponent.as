@@ -38,9 +38,9 @@ class UFrameMovementComponent : UActorComponent
     TArray<FVector> VelocityCollection;
     FVector Velocity;
     //Impulse collections this frame 
-    TArray<FVector> ImuplseCollection;
+    FVector ImuplseForce;
     //Drag for impulses
-    float ImpulseDrag = 0.98f;
+    float ImpulseDrag = 0.995f;
     TArray<AActor> FrameMoveIgnoreActors;
 
     //MOVEMENT INTERNAL DATA
@@ -98,8 +98,6 @@ class UFrameMovementComponent : UActorComponent
     {
         if (!bIsGrounded)
         {
-            // PrintToScreen(f"{Gravity=}");
-           
             if (bPreviouslyGrounded)
                 Gravity = GravitySettings.InitAmount;
             else
@@ -127,7 +125,8 @@ class UFrameMovementComponent : UActorComponent
 
     void AddImpulse(FVector Impulse)
     {
-        ImuplseCollection.Add(Impulse);
+        ImuplseForce += Impulse;
+        // ImuplseCollection.Add(Impulse);
     }
 
     // Runs in RunMovement group
@@ -138,7 +137,7 @@ class UFrameMovementComponent : UActorComponent
             ApplyGravity(DeltaTime);
 
         Velocity = FVector(0.0); 
-        FVector Impulses; 
+        // FVector Impulses; 
         FVector LastLoc = Owner.ActorLocation;
 
         for (FVector CurrentVelocity : VelocityCollection)
@@ -146,23 +145,26 @@ class UFrameMovementComponent : UActorComponent
             Velocity += CurrentVelocity;
         }
 
-        TArray<FVector> ImuplsesToRemove;
+        // TArray<FVector> ImuplsesToRemove;
 
-        for (FVector& CurrentVelocity : ImuplseCollection)
-        {
-            Impulses += CurrentVelocity;
-            CurrentVelocity *= ImpulseDrag;
+        // for (FVector& CurrentVelocity : ImuplseCollection)
+        // {
+        //     Impulses += CurrentVelocity;
+        //     CurrentVelocity *= ImpulseDrag;
 
-            if (CurrentVelocity.Size() <= 0.025f)
-                ImuplsesToRemove.Add(CurrentVelocity);
-        }
+        //     if (CurrentVelocity.Size() <= 0.025f)
+        //         ImuplsesToRemove.Add(CurrentVelocity);
+        // }
 
-        for (FVector& CurrentVelocity : ImuplsesToRemove)
-        {
-            ImuplseCollection.Remove(CurrentVelocity);
-        }
+        // for (FVector& CurrentVelocity : ImuplsesToRemove)
+        // {
+        //     ImuplseCollection.Remove(CurrentVelocity);
+        // }
 
-        Velocity += Impulses;
+        ImuplseForce -= (ImuplseForce * ImpulseDrag * DeltaTime);
+        PrintToScreen(f"{ImuplseForce=}");
+
+        Velocity += ImuplseForce * DeltaTime;
         PredictedMove = Owner.ActorLocation + Velocity;
 
         if (bApplyCornerSlide)
@@ -218,8 +220,11 @@ class UFrameMovementComponent : UActorComponent
 
         bool bInheritenceHitMade = false;
 
+        if (Owner.ActorLocation == PredictedMove)
+            PredictedMove = Owner.ActorLocation - FVector(0,0,1);
+
         FHitResult Hit;
-        System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
+        System::SphereTraceSingle(PlayerSphereComp.WorldLocation, PredictedMove, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
         FVector TraceDirection = Velocity.GetSafeNormal();
 
         FVector InheritenceGroundImpact;
@@ -244,7 +249,7 @@ class UFrameMovementComponent : UActorComponent
             if (MovementCollisionSolveData::GetCollisionType(Hit) == EGetMovementCollisionType::Ground)
                 InheritenceGroundImpact = Hit.ImpactPoint;
 
-            // FVector CorrectedNormal = MainHit.ImpactNormal;
+            // FVector CorrectedNormal = Hit.ImpactNormal;
             FVector DepenetrationOffset;
 
             // Maybe solve collisions differently - probably more relevant for character specific movement (step ups etc.)
@@ -263,17 +268,19 @@ class UFrameMovementComponent : UActorComponent
             TraceDirection = Hit.ImpactNormal;  
             PredictedMove += DepenetrationOffset;
 
-            for (FVector& CurrentVelocity : ImuplseCollection)
-            {
-                FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
-                CurrentVelocity -= RemoveImpulse;
-            }
+            // for (FVector& CurrentVelocity : ImuplseCollection)
+            // {
+            //     FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
+            //     CurrentVelocity -= RemoveImpulse;
+            // }
+
+            ImuplseForce -= ImuplseForce.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
 
             // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
             
             //Must trace slightly smaller than the current radius so as not to get the same wall hit we just corrected against
             //Janky solution tbh, but seems to be stable with current setup
-            System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::ForOneFrame, Hit, true, FLinearColor::Red);
+            System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
         }
 
         Owner.ActorLocation = PredictedMove;
@@ -283,7 +290,7 @@ class UFrameMovementComponent : UActorComponent
             InheritenceData.Comp.SetInheritenceData(Owner.ActorLocation);
         }
 
-        // PrintToScreen(f"{Iterations=}");
+        PrintToScreen(f"{Iterations=}");
 
         if (bApplyCornerSlide)
             RunCornerSlideCheck();
@@ -292,9 +299,10 @@ class UFrameMovementComponent : UActorComponent
         MoveThisFrame = Owner.ActorLocation - LastLoc;
 
         VelocityCollection.Empty();
-        ImuplsesToRemove.Empty();
+        // ImuplsesToRemove.Empty();
 
         PrintToScreen(f"{InheritenceData.Actor=}");
+        PrintToScreen(f"{bIsGrounded=}");
     }
 
     private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
@@ -467,9 +475,9 @@ class UFrameMovementComponent : UActorComponent
 
                 if (CornerDotCheck <= 0.5)
                 {
-                    System::DrawDebugArrow(TraceDownStart, CornerDownCheck.ImpactPoint, 0.5, FLinearColor::Blue, 10.0, 0.5);
-                    System::DrawDebugArrow(TraceForwardStart, CornerForwardCheck.ImpactPoint, 0.5, FLinearColor::Red, 10.0, 0.5);
-                    System::DrawDebugArrow(Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 200.0, 1.0, FLinearColor::Green, 10.0, 1.0);
+                    // System::DrawDebugArrow(TraceDownStart, CornerDownCheck.ImpactPoint, 0.5, FLinearColor::Blue, 10.0, 0.5);
+                    // System::DrawDebugArrow(TraceForwardStart, CornerForwardCheck.ImpactPoint, 0.5, FLinearColor::Red, 10.0, 0.5);
+                    // System::DrawDebugArrow(Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 200.0, 1.0, FLinearColor::Green, 10.0, 1.0);
                     return true;
                 }
             }
@@ -514,11 +522,6 @@ class UFrameMovementComponent : UActorComponent
             //If none, set to nullptr
 
     //Rework logic later to save offset and gradually remove inheritence offset while middair and completely remove when ground impacting a non inheritence actor
-
-    void UpdateInheritenceData()
-    {
-
-    }
 
     // void AddInheritMovementActor(AActor Actor)
     // {
