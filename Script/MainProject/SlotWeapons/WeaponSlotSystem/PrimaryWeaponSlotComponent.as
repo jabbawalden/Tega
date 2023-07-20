@@ -13,15 +13,16 @@ class UPrimaryWeaponSlotComponent : UWeaponSlotComponent
                 bHasWeapon = false;
                 break;
             case EPrimaryWeaponSlotType::Gattling:
-                WeaponSettings = PrimaryWeapons::GetBaseGattlingSettings();
+                WeaponSettings = SlotWeaponStats::GetBaseGattlingSettings();
+                DataComp.SpawnWeaponSlot(EPrimaryWeaponSlotType::Gattling, this);
                 bHasWeapon = true;
                 break;
             case EPrimaryWeaponSlotType::Plasma:
-                WeaponSettings = PrimaryWeapons::GetBasePlasmaSettings();
+                WeaponSettings = SlotWeaponStats::GetBasePlasmaSettings();
                 bHasWeapon = true;
                 break;
             case EPrimaryWeaponSlotType::AutoCannon:
-                WeaponSettings = PrimaryWeapons::GetBaseAutoCannonSettings();
+                WeaponSettings = SlotWeaponStats::GetBaseAutoCannonSettings();
                 bHasWeapon = true;
                 break;
         }

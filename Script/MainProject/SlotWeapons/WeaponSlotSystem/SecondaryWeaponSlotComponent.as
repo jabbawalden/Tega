@@ -3,11 +3,11 @@ class USecondaryWeaponSlotComponent : UWeaponSlotComponent
     ESecondaryWeaponSlotType WeaponType;
     USecondaryWeaponsDataComponent DataComp;
 
-    UFUNCTION(BlueprintOverride)
-    void BeginPlay()
-    {
-        DataComp = USecondaryWeaponsDataComponent::Get(Owner);
-    }
+    // UFUNCTION(BlueprintOverride)
+    // void BeginPlay()
+    // {
+    //     DataComp = USecondaryWeaponsDataComponent::Get(Owner);
+    // }
 
     void UpdateSecondaryWeaponType(ESecondaryWeaponSlotType NewWeaponType)
     {
@@ -19,15 +19,15 @@ class USecondaryWeaponSlotComponent : UWeaponSlotComponent
                 bHasWeapon = false;
                 break;
             case ESecondaryWeaponSlotType::Blaster:
-                WeaponSettings = SecondaryWeapons::GetBaseBlasterSettings();
+                WeaponSettings = SlotWeaponStats::GetBaseBlasterSettings();
                 bHasWeapon = true;
                 break;
             case ESecondaryWeaponSlotType::MissileLauncher:
-                WeaponSettings = SecondaryWeapons::GetBaseMissileLauncherSettings();
+                WeaponSettings = SlotWeaponStats::GetBaseMissileLauncherSettings();
                 bHasWeapon = true;
                 break;
             case ESecondaryWeaponSlotType::PulseBeam:
-                WeaponSettings = SecondaryWeapons::GetBasePulseBeamSettings();
+                WeaponSettings = SlotWeaponStats::GetBasePulseBeamSettings();
                 bHasWeapon = true;
                 break;
         }

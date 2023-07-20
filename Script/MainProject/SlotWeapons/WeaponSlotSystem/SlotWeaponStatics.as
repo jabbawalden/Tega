@@ -1,3 +1,14 @@
+enum ESlotWeaponClassType
+{
+    None,
+    Gattling,
+    Plasma,
+    AutoCannon,
+    Blaster,
+    MissileLauncher,
+    PulseBeam
+}
+
 enum EPrimaryWeaponSlotType
 {
     None,
@@ -89,7 +100,15 @@ struct FWeaponSettings
     }
 }
 
-namespace PrimaryWeapons
+struct FWeaponAimData
+{
+    UPROPERTY()
+    FVector AimStartPosition;
+    UPROPERTY()
+    FVector AimDirection;
+}
+
+namespace SlotWeaponStats
 {
     FWeaponSettings GetBaseGattlingSettings() 
     {
@@ -120,10 +139,7 @@ namespace PrimaryWeapons
 
         return NewSettings;
     }
-}
 
-namespace SecondaryWeapons
-{
     FWeaponSettings GetBaseBlasterSettings()
     {
         FWeaponSettings NewSettings;
@@ -163,4 +179,9 @@ namespace SecondaryWeapons
 
         return NewSettings;
     }
+}
+
+namespace SecondaryWeapons
+{
+
 }

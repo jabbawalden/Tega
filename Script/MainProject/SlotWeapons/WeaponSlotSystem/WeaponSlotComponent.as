@@ -1,11 +1,22 @@
-event void FOnWeaponSlotFired();
+event void FOnWeaponSlotFired(FWeaponAimData AimData);
+
+enum EWeaponSlotType
+{
+    Primary,
+    Secondary
+}
 
 class UWeaponSlotComponent : USceneComponent
 {
     UPROPERTY()
     FOnWeaponSlotFired OnWeaponSlotFired;
 
+    UPROPERTY()
+    EWeaponSlotType SlotType;
+
     float CurrentOverheat;
+    
+    ASlotWeapon ActiveWeapon;
     FWeaponSettings WeaponSettings;
 
     //Have weapon in this slot
@@ -13,6 +24,17 @@ class UWeaponSlotComponent : USceneComponent
 
     //Weapon is currently being used
     bool bWeaponInUse;
+
+    UAimComponent AimComp;
+    USlotWeaponDataComponent WeaponDataComp;
+
+    UFUNCTION(BlueprintOverride)
+    void BeginPlay()
+    {
+        AimComp = UAimComponent::Get(Owner);
+        WeaponDataComp = USlotWeaponDataComponent::Get(Owner);
+
+    }
 
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaSeconds)
@@ -33,6 +55,39 @@ class UWeaponSlotComponent : USceneComponent
             }
 
         }
+    }
+
+    void SetWeapon(ESlotWeaponClassType Type)
+    {
+        //run here also in case set weapon is called first
+        WeaponDataComp.SetWeaponData();
+        ReplaceCurrentWeapon(WeaponDataComp.GetWeaponData(Type));
+    }
+
+    private void ReplaceCurrentWeapon(ASlotWeapon Weapon)
+    {
+        if (SlotType == Weapon.SlotType)
+        {
+            RemoveCurrentWeapon();
+            SetActiveWeapon(Weapon);
+        }
+    }
+
+    private void RemoveCurrentWeapon()
+    {
+        if (ActiveWeapon != nullptr)
+            ActiveWeapon.DisableWeapon();
+        
+        ActiveWeapon = nullptr;
+        bHasWeapon = false;
+    }
+
+    private void SetActiveWeapon(ASlotWeapon Weapon)
+    {
+        ActiveWeapon = Weapon;
+        ActiveWeapon.EnableWeapon();
+        ActiveWeapon.AttachToComponent(this, NAME_None, EAttachmentRule::SnapToTarget);
+        bHasWeapon = true;
     }
 
     //Runs logic 
@@ -69,9 +124,11 @@ class UWeaponSlotComponent : USceneComponent
                 WeaponSettings.SetOverheatCompletely(true);
             }
 
-            // Print("OnWeaponSlotFired");
-            // Print("Rounds: " + WeaponSettings.GetCurrentRounds());
-            OnWeaponSlotFired.Broadcast(); 
+            FWeaponAimData AimData;
+            AimData.AimDirection = AimComp.GetAimDirection();
+            AimData.AimStartPosition = AimComp.GetAimStartPosition();
+
+            OnWeaponSlotFired.Broadcast(AimData); 
         }
     }
 

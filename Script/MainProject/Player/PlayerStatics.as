@@ -74,19 +74,19 @@ struct FPlayerCameraSettings
 struct FPlayerCameraCameraOffset
 {
     UPROPERTY()
-    float TargetArmLength = 550.f;
+    float TargetArmLength = 600.f;
     UPROPERTY()
     float SpringArmOffsetX = 0.f;
     UPROPERTY()
     float SpringArmOffsetY = 0.f;
     UPROPERTY()
-    float SpringArmOffsetZ = -100.f;
+    float SpringArmOffsetZ = 0.f;
     UPROPERTY()
     float CameraOffsetX = 0.f;
     UPROPERTY()
-    float CameraOffsetY = 0.f;
+    float CameraOffsetY = 80;
     UPROPERTY()
-    float CameraOffsetZ = 0.f;
+    float CameraOffsetZ = -50.f;
 }
 
 struct FPlayerCameraControlSettings
@@ -106,7 +106,13 @@ struct FPlayerCameraControlSettings
     UPROPERTY()
     float MinPitchClamp = 35.f;
     UPROPERTY()
-    float MaxPitchClamp = -50.f;
+    float MaxPitchClamp = -35.f;
+    UPROPERTY()
+    float MaxUpViewOffset = 40.0;
+    UPROPERTY()
+    float MaxDownViewOffset = 80.0;
+    UPROPERTY()
+    float VerticalViewOffsetInterp = 5.0;
 }
 
 struct FPlayerCameraChaseSettings
@@ -122,7 +128,7 @@ struct FPlayerCameraChaseSettings
     UPROPERTY()
     float LookInterp = 0.6f;
     UPROPERTY()
-    float CameraLocationFollowInterp = 14.f;
+    float CameraLocationFollowInterp = 12.f;
 }
 
 struct FPlayerCameraFOVSettings

@@ -34,21 +34,28 @@ class APlayerVessel : APlayerModPawn
     USceneComponent CharacterRoot;
     UPROPERTY(DefaultComponent, Attach = CharacterRoot)
     USceneComponent MeshRoot;
-    UPROPERTY(DefaultComponent, Attach = CharacterRoot)
-    USceneComponent ProjectileOrigin;
+    // UPROPERTY(DefaultComponent, Attach = MeshRoot)
+    // USceneComponent ProjectileOrigin;
 
-    UPROPERTY(DefaultComponent, Attach = CharacterRoot)
+    UPROPERTY(DefaultComponent, Attach = MeshRoot)
     USceneComponent WeaponsRoot;
 
-    //*** WEAPON SLOTS ***//
+    //*** SLOT WEAPONS ***//
     UPROPERTY(DefaultComponent, Attach = WeaponsRoot)
-    UPrimaryWeaponSlotComponent PlayerPrimaryWeaponOne;
+    UWeaponSlotComponent PlayerPrimaryWeaponOne;
+    default PlayerPrimaryWeaponOne.SlotType = EWeaponSlotType::Primary;
     UPROPERTY(DefaultComponent, Attach = WeaponsRoot)
-    UPrimaryWeaponSlotComponent PlayerPrimaryWeaponTwo;
+    UWeaponSlotComponent PlayerPrimaryWeaponTwo;
+    default PlayerPrimaryWeaponTwo.SlotType = EWeaponSlotType::Primary;
     UPROPERTY(DefaultComponent, Attach = WeaponsRoot)
-    USecondaryWeaponSlotComponent PlayerSecondaryWeaponOne;
+    UWeaponSlotComponent PlayerSecondaryWeaponOne;
+    default PlayerSecondaryWeaponOne.SlotType = EWeaponSlotType::Secondary;
     UPROPERTY(DefaultComponent, Attach = WeaponsRoot)
-    USecondaryWeaponSlotComponent PlayerSecondaryWeaponTwo;
+    UWeaponSlotComponent PlayerSecondaryWeaponTwo;
+    default PlayerSecondaryWeaponTwo.SlotType = EWeaponSlotType::Secondary;
+
+    UPROPERTY(DefaultComponent)
+    USlotWeaponDataComponent SlotWeaponDataComp; 
 
     //*** BASE COMPONENTS ***//
     UPROPERTY(DefaultComponent)
@@ -57,13 +64,8 @@ class APlayerVessel : APlayerModPawn
     UFrameMovementComponent FrameMovementComp;
     UPROPERTY(DefaultComponent)
     UPlayerHealthComponent HealthComp;
-
-    //*** WEAPON SLOT DATA ***//
     UPROPERTY(DefaultComponent)
-    UPrimaryWeaponsDataComponent PrimaryWeaponsDataComp;
-    UPROPERTY(DefaultComponent)
-    USecondaryWeaponsDataComponent SecondaryWeaponsDataComp;
-    
+    UAimComponent AimComp;
 
     UPROPERTY(Category = "Setup", EditDefaultsOnly)
     TSubclassOf<APlayerVesselCamera> PlayerCameraClass;
@@ -165,10 +167,7 @@ class APlayerVessel : APlayerModPawn
         CurrentBoost = MaxBoost;
 
         //FOR TESTING
-        PlayerPrimaryWeaponOne.UpdatePrimaryWeaponType(EPrimaryWeaponSlotType::Gattling);
-        PlayerPrimaryWeaponTwo.UpdatePrimaryWeaponType(EPrimaryWeaponSlotType::AutoCannon);
-        PlayerSecondaryWeaponOne.UpdateSecondaryWeaponType(ESecondaryWeaponSlotType::PulseBeam);
-        PlayerSecondaryWeaponTwo.UpdateSecondaryWeaponType(ESecondaryWeaponSlotType::MissileLauncher);
+        PlayerPrimaryWeaponOne.SetWeapon(ESlotWeaponClassType::Gattling);
     }
 
     void SpawnProjectile(FVector Origin, FVector Direction)
@@ -191,9 +190,9 @@ class APlayerVessel : APlayerModPawn
     {
         FVector Position = CrystalLocationArray[Index];
 
-        FVector ForwardOffset = ViewRotation().ForwardVector * Position.X; 
-        FVector RightOffset = ViewRotation().RightVector * Position.Y; 
-        FVector UpOffset = ViewRotation().UpVector * Position.Z;
+        FVector ForwardOffset = GetViewRotation().ForwardVector * Position.X; 
+        FVector RightOffset = GetViewRotation().RightVector * Position.Y; 
+        FVector UpOffset = GetViewRotation().UpVector * Position.Z;
 
         return ActorLocation + ForwardOffset + RightOffset + UpOffset;
     }
@@ -345,17 +344,23 @@ class APlayerVessel : APlayerModPawn
         return PlayerInputReaderComp.GetStickVector(Tag);
     }
 
-    FRotator ViewRotation()
+    FRotator GetViewRotation()
     {
         return PlayerCamera.CameraComp.WorldRotation;
     }
 
-    FVector ViewLocation()
+    FVector GetViewTrueLocation()
     {
         return PlayerCamera.CameraComp.WorldLocation;
     }
 
-    FVector CameraDirection()
+    FVector GetViewTargetLocation()
+    {
+        FVector RelativePosition = (PlayerCamera.CameraComp.WorldLocation + (PlayerCamera.RootOffset.RelativeLocation / 4)) - PlayerCamera.ActorLocation;
+        return CharacterRoot.WorldLocation + RelativePosition;
+    }
+
+    FVector GetViewDirection()
     {
         return PlayerCamera.CameraComp.WorldRotation.Vector();
     }
@@ -428,7 +433,7 @@ class APlayerVessel : APlayerModPawn
                 continue;
 
             Direction.Normalize();
-            FVector ViewDirection = ViewRotation().Vector().ConstrainToPlane(FVector::UpVector);
+            FVector ViewDirection = GetViewRotation().Vector().ConstrainToPlane(FVector::UpVector);
             ViewDirection.Normalize();
 
             float Dot = ViewDirection.DotProduct(Direction);

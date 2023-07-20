@@ -14,7 +14,7 @@ class UFrameMovementComponent : UActorComponent
     private float CornerSlideTargetForce = 400.0;
 
     UPROPERTY(meta = (EditCondition="bApplySlide", EditConditionHides))
-    private float CornerSlideInterp = 500.0;
+    private float CornerSlideInterp = 400.0;
 
     private float CornerSlideForce;
     private FVector LastSavedSlideDirection;
@@ -405,9 +405,9 @@ class UFrameMovementComponent : UActorComponent
     //For dashes, ground movement etc. if we want actor to move along plane with input
     FVector GetPlaneCorrectedVelocity(FVector CurrentVelocity)
     {
-        if (IsGrounded() && GetGroundPlane(CurrentVelocity.GetSafeNormal()).Size() > 0.0)
+        if (IsGrounded() && GetGroundPlaneCalculation(CurrentVelocity.GetSafeNormal()).Size() > 0.0)
         {
-            FVector UpV = GetGroundPlane(CurrentVelocity.GetSafeNormal());
+            FVector UpV = GetGroundPlaneCalculation(CurrentVelocity.GetSafeNormal());
             FVector RightV = UpV.CrossProduct(CurrentVelocity);
             FVector ForwardV = RightV.CrossProduct(UpV);
 
@@ -418,7 +418,7 @@ class UFrameMovementComponent : UActorComponent
     }
 
     //Traces for and returns ground plane normal - sphere trace however is weird. Change this later to line trace
-    FVector GetGroundPlane(FVector MovementDirection)
+    private FVector GetGroundPlaneCalculation(FVector MovementDirection)
     {
         FHitResult Hit;
         System::SphereTraceSingle(Owner.ActorLocation, Owner.ActorLocation - Owner.ActorUpVector, PlayerSphereComp.SphereRadius, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
@@ -440,6 +440,11 @@ class UFrameMovementComponent : UActorComponent
         }    
 
         return FVector(0.0);  
+    }
+
+    FVector GetGroundPlane()
+    {
+        return InternalGroundPlane;
     }
 
     //Check if we impacted a corner

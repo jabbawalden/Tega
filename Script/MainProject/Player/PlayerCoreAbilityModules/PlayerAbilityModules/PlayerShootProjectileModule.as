@@ -48,15 +48,15 @@ class UPlayerShootProjectileModule : UModule
 
     void Update(float DeltaTime) override
     {
-        FVector TEMPShootDir = Player.GetShootDirection(Player.ProjectileOrigin.WorldLocation);
+        // FVector TEMPShootDir = Player.GetShootDirection(Player.ProjectileOrigin.WorldLocation);
 
-        if (System::GameTimeInSeconds > Time)
-        {
-            Time = System::GameTimeInSeconds + Rate;
+        // if (System::GameTimeInSeconds > Time)
+        // {
+        //     Time = System::GameTimeInSeconds + Rate;
 
-            // Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, Player.GetConstrainedCameraForward());
-            // Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, Player.GetShootDirection());
-            Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, TEMPShootDir);
-        }
+        //     // Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, Player.GetConstrainedCameraForward());
+        //     // Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, Player.GetShootDirection());
+        //     Player.SpawnProjectile(Player.ProjectileOrigin.WorldLocation, TEMPShootDir);
+        // }
     }
 }

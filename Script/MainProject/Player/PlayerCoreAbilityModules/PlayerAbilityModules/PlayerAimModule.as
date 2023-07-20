@@ -50,7 +50,7 @@ class UPlayerAimModule : UModule
 
     void Update(float DeltaTime) override
     {
-        float Dot = Player.ViewRotation().Vector().DotProduct(FVector::UpVector);
+        float Dot = Player.GetViewRotation().Vector().DotProduct(FVector::UpVector);
         // PrintToScreen("DOT: " + Dot);
     }
 } 
