@@ -51,7 +51,7 @@ class AModuleGameMode : AGameMode
     TArray<UModule> CheckMovement;
     TArray<UModule> CheckGameplay;
     TArray<UModule> CheckAfterGameplay;
-    TArray<UModule> CheckGroup5;
+    TArray<UModule> CheckLast;
 
     //Update groups
     TArray<UModule> UpdateInitiation;
@@ -61,7 +61,7 @@ class AModuleGameMode : AGameMode
     TArray<UModule> UpdateRunMovement;
     TArray<UModule> UpdateGameplay;
     TArray<UModule> UpdateAfterGameplay;
-    TArray<UModule> UpdateGroup5;
+    TArray<UModule> UpdateLast;
 
     //Nothing here (yet?)
     UFUNCTION(BlueprintOverride)
@@ -104,7 +104,7 @@ class AModuleGameMode : AGameMode
 
         //Checks if any modules have been requested for removal
         //Runs last to ensure that module arrays aren't altered during their loop
-        RunShouldRemoveModule();
+        RunRemoveModuleRequests();
     }
 
     //For modules that are eligible and exist in the request add array, add to check groups
@@ -137,8 +137,8 @@ class AModuleGameMode : AGameMode
         TArray<UModule> TempUpdateCalculateMovement = UpdateCalculateMovement;
         TArray<UModule> TempUpdateMakeMovement = UpdateRunMovement;
         TArray<UModule> TempUpdateGameplay = UpdateGameplay;
-        TArray<UModule> TempUpdateGroup4 = UpdateAfterGameplay;
-        TArray<UModule> TempUpdateGroup5 = UpdateGroup5;
+        TArray<UModule> TempUpdateAfterGameplay = UpdateAfterGameplay;
+        TArray<UModule> TempUpdateLast = UpdateLast;
 
         for (UModule Module : TempUpdatePreGame)
         {
@@ -197,7 +197,7 @@ class AModuleGameMode : AGameMode
         }
 
 
-        for (UModule Module : TempUpdateGroup4)
+        for (UModule Module : TempUpdateAfterGameplay)
         {
             if (Module.CheckShouldDeactivate())
             {
@@ -207,12 +207,12 @@ class AModuleGameMode : AGameMode
         }
 
 
-        for (UModule Module : TempUpdateGroup5)
+        for (UModule Module : TempUpdateLast)
         {
             if (Module.CheckShouldDeactivate())
             {
                 Module.OnDeactivated();
-                UpdateGroup5.Remove(Module);
+                UpdateLast.Remove(Module);
             }
         }         
     }
@@ -282,12 +282,12 @@ class AModuleGameMode : AGameMode
             }
         }
 
-        for (UModule Module : CheckGroup5)
+        for (UModule Module : CheckLast)
         {
             if (Module.CheckShouldActivate())
             {
                 Module.OnActivated();
-                UpdateGroup5.Add(Module);
+                UpdateLast.Add(Module);
             }
         }     
     }
@@ -329,7 +329,7 @@ class AModuleGameMode : AGameMode
             Module.Update(DeltaTime);
         }
 
-        for (UModule Module : UpdateGroup5)
+        for (UModule Module : UpdateLast)
         {
             Module.Update(DeltaTime);
         }
@@ -340,7 +340,7 @@ class AModuleGameMode : AGameMode
     //Removes from module array
     //If blocked, removes from blocked list without running onunblocked function
     //Removes from update and check lists
-    void RunShouldRemoveModule()
+    void RunRemoveModuleRequests()
     {
         // TArray<UModule> CurrentArray = ModuleArray;
 
@@ -395,6 +395,12 @@ class AModuleGameMode : AGameMode
                         if (UpdateAfterGameplay.Contains(RemoveModule))
                             UpdateAfterGameplay.Remove(RemoveModule);
                         CheckAfterGameplay.Remove(RemoveModule);
+                        break;
+
+                    case EModuleUpdateGroup::Last: 
+                        if (UpdateLast.Contains(RemoveModule))
+                            UpdateLast.Remove(RemoveModule);
+                        UpdateLast.Remove(RemoveModule);
                         break;
                 }
         }
@@ -490,6 +496,9 @@ class AModuleGameMode : AGameMode
                 break;
             case EModuleUpdateGroup::AfterGameplay: 
                 CheckAfterGameplay.Add(NewModule);
+                break;
+            case EModuleUpdateGroup::Last: 
+                CheckLast.Add(NewModule);
                 break;
         }
     }

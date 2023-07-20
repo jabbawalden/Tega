@@ -21,6 +21,7 @@ enum EModuleUpdateGroup
     RunMovement,
     Gameplay,
     AfterGameplay,
+    Last
 }
 
 //This is the module base class
