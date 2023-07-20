@@ -19,7 +19,7 @@ class AModuleGameMode : AGameMode
     TArray<FModuleTickGroup> ModuleCheckShouldActivateGroups;
     TArray<FModuleTickGroup> ModuleIsActiveGroups;
     TArray<FModuleTickGroup> ModuleBlockedGroups;
-    //TODO implement proper switching between groups  
+    //TODO looking into implementomg swapping behaviours between groups 
     /* 
     //
     Starts in Should Activates,
@@ -27,6 +27,7 @@ class AModuleGameMode : AGameMode
     Use Is Active group to check if should deactivate
     Any blocks get sent to blocked groups and deactivate
     Unblocks get removed from blocked groups, then sent to should activate groups 
+    This could be cheaper rather than running through lot's of lists where duplicate behaviours exist
     */
 
     //Tags that have been blocked
