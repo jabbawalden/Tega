@@ -12,4 +12,22 @@ class UPlayerPrimaryWeaponOneModule : UPlayerBaseWeaponSlotModule
         Super::Setup();
         WeaponSlot = Player.PlayerPrimaryWeaponOne;
     }
+
+    void OnActivated() override
+    {
+        Super::OnActivated();
+        
+    }
+
+    void OnDeactivated() override
+    {
+        Super::OnDeactivated();
+        
+    }
+
+    void Update(float DeltaTime) override
+    {
+        Super::Update(DeltaTime);
+        
+    }
 }

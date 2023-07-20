@@ -26,7 +26,7 @@ class UPlayerDashModule : UModule
 
     bool ShouldActivate() override
     {
-        if (!Player.WasInputActioned(InputNames::FaceButtonLeft))
+        if (!Player.WasInputActioned(InputNames::FaceButtonRight))
             return false;
 
         if (Gameplay::GetTimeSeconds() < RecoveryTime)

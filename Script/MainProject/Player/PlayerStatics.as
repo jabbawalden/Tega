@@ -74,7 +74,7 @@ struct FPlayerCameraSettings
 struct FPlayerCameraCameraOffset
 {
     UPROPERTY()
-    float TargetArmLength = 600.f;
+    float TargetArmLength = 550.f;
     UPROPERTY()
     float SpringArmOffsetX = 0.f;
     UPROPERTY()

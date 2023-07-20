@@ -1,11 +1,17 @@
 class USecondaryWeaponSlotComponent : UWeaponSlotComponent
 {
     ESecondaryWeaponSlotType WeaponType;
+    USecondaryWeaponsDataComponent DataComp;
+
+    UFUNCTION(BlueprintOverride)
+    void BeginPlay()
+    {
+        DataComp = USecondaryWeaponsDataComponent::Get(Owner);
+    }
 
     void UpdateSecondaryWeaponType(ESecondaryWeaponSlotType NewWeaponType)
     {
         WeaponType = NewWeaponType;
-        UPrimaryWeaponsDataComponent DataComp = UPrimaryWeaponsDataComponent::Get(Owner);
 
         switch(WeaponType)
         {

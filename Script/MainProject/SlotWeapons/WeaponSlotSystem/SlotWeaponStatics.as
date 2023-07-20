@@ -20,17 +20,19 @@ enum EWeaponFireType
     OneShot
 }
 
-struct FWeaponSettings
+struct FWeaponSettings  
 {
     EWeaponFireType WeaponInputType;
     float FireRate = 0.5;
     float Damage = 1.0;
     float OverheatPerFire = 0.15;
+    int MaxRounds = 0;
+    float Cooldown = 0.0;
 }
 
 namespace PrimaryWeapons
 {
-    FWeaponSettings GetBaseGattlingSettings()
+    FWeaponSettings GetBaseGattlingSettings() 
     {
         FWeaponSettings NewSettings;
         NewSettings.Damage = 3.5;
@@ -68,8 +70,9 @@ namespace SecondaryWeapons
         FWeaponSettings NewSettings;
         NewSettings.WeaponInputType = EWeaponFireType::OneShot;
         NewSettings.Damage = 100.0;
-        NewSettings.FireRate = 0.075;
-        NewSettings.OverheatPerFire = 0.5;
+        NewSettings.FireRate = 0.0;
+        NewSettings.Cooldown = 1.0;
+        NewSettings.MaxRounds = 1.0;
 
         return NewSettings;
     }
@@ -77,9 +80,12 @@ namespace SecondaryWeapons
     FWeaponSettings GetBaseMissileLauncherSettings()
     {
         FWeaponSettings NewSettings;
+        NewSettings.WeaponInputType = EWeaponFireType::OneShot;
         NewSettings.Damage = 15.0;
-        NewSettings.FireRate = 0.4;
+        NewSettings.FireRate = 0.1;
         NewSettings.OverheatPerFire = 0.2;
+        NewSettings.MaxRounds = 6;
+        NewSettings.Cooldown = 1.0;
 
         return NewSettings;
     }
@@ -89,7 +95,8 @@ namespace SecondaryWeapons
         FWeaponSettings NewSettings;
         NewSettings.WeaponInputType = EWeaponFireType::OneShot;
         NewSettings.Damage = 50.0;
-        NewSettings.FireRate = 0.2;
+        NewSettings.FireRate = 0.0;
+        NewSettings.MaxRounds = 1;
         NewSettings.OverheatPerFire = 0.5;
 
         return NewSettings;
