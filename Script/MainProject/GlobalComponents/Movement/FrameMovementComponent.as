@@ -29,10 +29,6 @@ class UFrameMovementComponent : UActorComponent
     FMovementGravitySettings GravitySettings;
     float Gravity = GravitySettings.InitAmount;
 
-    // FVector LastGroundHit;
-    // bool bStepUpGroundCheckQueryAvailable;
-    // bool bStepUpGroundCheckApplicable;
-
     //VELOCITIES
     //Velocity collection this frame
     TArray<FVector> VelocityCollection;
@@ -127,11 +123,10 @@ class UFrameMovementComponent : UActorComponent
     void AddImpulse(FVector Impulse)
     {
         ImuplseForce += Impulse;
-        // ImuplseCollection.Add(Impulse);
     }
 
     // Runs in RunMovement group
-    // If not using module system, run manually once you have calculated your moves
+    // If not using module system, will need to be run manually (in module setup, we calcualte moves first in the frame, then update after)
     void Update(float DeltaTime)
     {
         if (bApplyGravity)
@@ -201,8 +196,7 @@ class UFrameMovementComponent : UActorComponent
         // Owner.ActorLocation += Velocity * DeltaTime;
         
         
-        //MORE PHYSICSY-ISH METHOD
-        //Kind of a half way solution so not pure physics, but has some elements of it, and is less rigid with how it solves different impacts
+        //CURRENT METHOD
         int Iterations = 0;
 
         bool bInheritenceHitMade = false;
@@ -250,21 +244,13 @@ class UFrameMovementComponent : UActorComponent
             //         break;
             // }
 
-            DepenetrationOffset = GetDepenetrationOffset(PredictedMove, Hit.ImpactNormal, Hit.ImpactPoint, DeltaTime);
+            DepenetrationOffset = GetDepenetrationOffset(PredictedMove, Hit.ImpactNormal, Hit.ImpactPoint);
 
             TraceDirection = Hit.ImpactNormal;  
             PredictedMove += DepenetrationOffset;
 
-            // for (FVector& CurrentVelocity : ImuplseCollection)
-            // {
-            //     FVector RemoveImpulse = CurrentVelocity.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
-            //     CurrentVelocity -= RemoveImpulse;
-            // }
-
             ImuplseForce -= ImuplseForce.ConstrainToDirection(-DepenetrationOffset.GetSafeNormal());
 
-            // System::DrawDebugArrow(MainHit.ImpactPoint, MainHit.ImpactPoint + MainHit.ImpactNormal * 500.0, 10.0, FLinearColor::Red, 0.0, 5.0);
-            
             //Must trace slightly smaller than the current radius so as not to get the same wall hit we just corrected against
             //Janky solution tbh, but seems to be stable with current setup
             System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
@@ -282,25 +268,22 @@ class UFrameMovementComponent : UActorComponent
             InheritenceData.Comp.SetInheritenceData(Owner.ActorLocation);
         }
 
-        PrintToScreen(f"{Iterations=}");
-
         if (bApplyCornerSlide)
             RunCornerSlideCheck();
 
         MoveThisFrame = Owner.ActorLocation - LastLoc;
 
         Velocity = FVector(0.0); 
-
-        // PrintToScreen(f"{InheritenceData.Actor=}");
-        // PrintToScreen(f"{bIsGrounded=}");
     }
 
-    private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
+    //Returns depenetration vector offset for velocity based on impact point, predicted move and impact normal
+    private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint)
     {
         //Total distance between impact point and predicted move location
         float Size = (ImpactPoint - CurrentPredictedMove).Size();
 
         //Check if predicted move location has passed the collision point - if so, reverse size so that we get the correct depth calculation
+        //Passing collision point should add size amount, rather than minus from it.
         FVector HitToOrigin = (Owner.ActorLocation - ImpactPoint).GetSafeNormal();
         FVector HitToPredicted = (CurrentPredictedMove - ImpactPoint).GetSafeNormal();
         float NormalDot = HitToOrigin.DotProduct(HitToPredicted);
@@ -320,7 +303,7 @@ class UFrameMovementComponent : UActorComponent
         if (Depth <= 0.0)
             PenetrationOffset = FVector(0.0);
 
-        System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 300.0, 25.0, FLinearColor::Red, 0.0, 5.0);
+        // System::DrawDebugArrow(ImpactPoint, ImpactPoint + ImpactNormal * 300.0, 25.0, FLinearColor::Red, 0.0, 5.0);
 
         return PenetrationOffset;
     }
@@ -436,6 +419,7 @@ class UFrameMovementComponent : UActorComponent
         return FVector(0.0);  
     }
 
+    //Check if we impacted a corner
     private bool ImpactedCorner(FVector MovementDirection, FHitResult Hit)
     {
         float ImpactDot = Hit.ImpactNormal.DotProduct(FVector::UpVector);
@@ -476,7 +460,7 @@ class UFrameMovementComponent : UActorComponent
         return false;
     }
 
-    //Gets valid hit (always defaults to last valid hit made)
+    //Gets valid hit (always defaults to first valid hit made)... just to make explicit what it picks up any given frame
     //Return true if we were updated
     bool UpdateTargetInheritMovementActor(AActor HitActor, UPrimitiveComponent HitComponent)
     {
@@ -496,31 +480,8 @@ class UFrameMovementComponent : UActorComponent
             return false;
         }
         
-        //set nullptr
         InheritenceData.Actor = nullptr;
         InheritenceData.Comp = nullptr;
         return false;
     }   
-
-    //If Inheritence actor,
-        //get delta and apply to predicted location
-    //If no inheritence actor
-        //Find based on ground hits
-            //Found
-    //If inheritence actor
-        //Check for others based on ground hits
-            //If new one, switch and reset data
-            //If none, set to nullptr
-
-    //Rework logic later to save offset and gradually remove inheritence offset while middair and completely remove when ground impacting a non inheritence actor
-
-    // void AddInheritMovementActor(AActor Actor)
-    // {
-    //     InheritMovementActors.AddUnique(Actor);
-    // }
-
-    // void RemoveInheritMovementActor(AActor Actor)
-    // {
-    //     InheritMovementActors.Remove(Actor);
-    // }
 }
