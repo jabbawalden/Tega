@@ -8,12 +8,14 @@ class UPlayerCharacterRotationModule : UModule
     default Tags.Add(PlayerGenericTags::Movement);
 
     APlayerVessel Player;
+    UFrameMovementComponent MoveComp;
 
     // FVector SavedInput;
  
     void Setup() override
     {
         Player = Cast<APlayerVessel>(Owner);
+        MoveComp = UFrameMovementComponent::Get(Player);
     }
 
     bool ShouldActivate() override
@@ -35,6 +37,7 @@ class UPlayerCharacterRotationModule : UModule
         else if (Player.GetStickVector(InputNames::LeftStickMovement).Size() != 0.f)
             Player.CharacterFacingRotation = Player.SavedMovementDirection.Rotation();
 
-        Player.ActorRotation = Math::RInterpTo(Player.ActorRotation, Player.CharacterFacingRotation, DeltaTime, 8.f);
+        FRotator NewRot = Math::RInterpTo(Player.ActorRotation, Player.CharacterFacingRotation, DeltaTime, 8.f);
+        MoveComp.SetRotationThisFrame(NewRot);
     }
 }

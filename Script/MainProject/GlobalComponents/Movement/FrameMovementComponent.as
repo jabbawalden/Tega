@@ -39,6 +39,10 @@ class UFrameMovementComponent : UActorComponent
     float ImpulseDrag = 0.992f;
     TArray<AActor> FrameMoveIgnoreActors;
 
+    //ROTATIONS
+    FRotator AddRotations;
+    FRotator SetRotation;
+
     //MOVEMENT INTERNAL DATA
     private FVector MoveThisFrame;
     private FVector PredictedMove;
@@ -53,7 +57,7 @@ class UFrameMovementComponent : UActorComponent
     // private TArray<AActor> InheritMovementActors;
     private FInheritenceMovementData InheritenceData;
     private FVector InheritedVelocity;
-    private float InheritedDrag = 0.995;
+    private float InheritedDrag = 0.996;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -88,6 +92,18 @@ class UFrameMovementComponent : UActorComponent
     void AddVelocityToFrame(FVector NewVelocity)
     {
         Velocity += NewVelocity;
+    }
+    
+    //Add rotation to this frame - overridden when set rotation is called
+    void AddRotationToFrame(FRotator Rotation)
+    {
+        AddRotations += Rotation;
+    }
+
+    //Sets rotation this frame - overrides any added rotations
+    void SetRotationThisFrame(FRotator Rotation)
+    {
+        SetRotation = Rotation;
     }
 
     //Runs internally
@@ -256,12 +272,17 @@ class UFrameMovementComponent : UActorComponent
             System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
         }
 
+        Owner.ActorLocation = PredictedMove;
+        
+        if (SetRotation.IsNearlyZero())
+            Owner.ActorRotation += AddRotations;
+        else
+            Owner.ActorRotation = SetRotation;
+
         if (bIsGrounded && InheritenceData.Comp == nullptr)
         {
             InheritedVelocity = FVector(0);
         }
-
-        Owner.ActorLocation = PredictedMove;
 
         if (InheritenceData.Comp != nullptr)
         {
@@ -274,6 +295,8 @@ class UFrameMovementComponent : UActorComponent
         MoveThisFrame = Owner.ActorLocation - LastLoc;
 
         Velocity = FVector(0.0); 
+        AddRotations = FRotator(0.0);
+        SetRotation = FRotator(0.0);
     }
 
     //Returns depenetration vector offset for velocity based on impact point, predicted move and impact normal

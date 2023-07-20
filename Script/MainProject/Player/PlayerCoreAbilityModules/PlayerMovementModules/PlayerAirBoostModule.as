@@ -9,7 +9,7 @@ class UPlayerAirBoostModule : UModule
     UFrameMovementComponent MoveComp;
 
     float Impulse;
-    float ImpulseTarget = 250.f;
+    float ImpulseTarget = 350.f;
 
     void Setup() override
     {
@@ -61,7 +61,7 @@ class UPlayerAirBoostModule : UModule
         // Player.CurrentBoost -= Player.BoostDeductAmount * DeltaTime;
         Player.CurrentBoost = Math::Clamp(Player.CurrentBoost, 0.f, Player.MaxBoost);
 
-        Impulse = Math::FInterpTo(Impulse, ImpulseTarget, DeltaTime, 0.3f);
+        Impulse = Math::FInterpTo(Impulse, ImpulseTarget, DeltaTime, 0.2f);
         MoveComp.AddImpulse(FVector(0.f, 0.f, Impulse * DeltaTime));
     }
 }
