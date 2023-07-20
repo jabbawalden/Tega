@@ -37,19 +37,15 @@ namespace PlayerGenericTags
 struct FPlayerMovementSettings
 {
     UPROPERTY()
-    float MoveSpeed = 1400.f;
+    float MoveSpeed = 900.f;
     UPROPERTY()
-    float DashSpeed = 3800.f;
+    float DashSpeed = 2200.f;
     UPROPERTY()
-    float DashDuration = 0.15f;
+    float DashDuration = 0.17f;
     UPROPERTY()
-    float DashDecceleration = 15000.f;
+    float DashDecceleration = 12000.f;
     UPROPERTY()
     float DashRecoveryTime = 0.4f;
-    UPROPERTY()
-    float Gravity = 3000.f;
-    UPROPERTY()
-    float GravityAcceleration = 2500.f;
 
     EPlayerSettingsPriority SettingsPriority;
 
@@ -78,13 +74,13 @@ struct FPlayerCameraSettings
 struct FPlayerCameraCameraOffset
 {
     UPROPERTY()
-    float TargetArmLength = 1200.f;
+    float TargetArmLength = 600.f;
     UPROPERTY()
     float SpringArmOffsetX = 0.f;
     UPROPERTY()
     float SpringArmOffsetY = 0.f;
     UPROPERTY()
-    float SpringArmOffsetZ = 0.f;
+    float SpringArmOffsetZ = -100.f;
     UPROPERTY()
     float CameraOffsetX = 0.f;
     UPROPERTY()
