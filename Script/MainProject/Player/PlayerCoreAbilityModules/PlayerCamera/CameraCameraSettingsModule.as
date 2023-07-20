@@ -41,6 +41,8 @@ class UCameraCameraSettingsModule : UModule
     {
         float TargetLength = Math::FInterpTo(Player.GetPlayerCameraActor().SpringArm.TargetArmLength, Player.GetCameraOffsetSettings().TargetArmLength, DeltaTime, TEMPInterp);
         Player.GetPlayerCameraActor().SpringArm.TargetArmLength = TargetLength;
+        PrintToScreen(f"{TargetLength=}");
+        PrintToScreen(f"{Player.GetPlayerCameraActor().SpringArm.TargetArmLength=}");
         
         float TargetSpringOffsetX = Math::FInterpTo(Player.GetPlayerCameraActor().SpringArm.RelativeLocation.X, Player.GetCameraOffsetSettings().SpringArmOffsetX, DeltaTime, TEMPInterp);;
         float TargetSpringOffsetY = Math::FInterpTo(Player.GetPlayerCameraActor().SpringArm.RelativeLocation.Y, Player.GetCameraOffsetSettings().SpringArmOffsetY, DeltaTime, TEMPInterp);;
