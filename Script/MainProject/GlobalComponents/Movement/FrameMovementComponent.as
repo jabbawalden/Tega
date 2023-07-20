@@ -40,7 +40,7 @@ class UFrameMovementComponent : UActorComponent
     //Impulse collections this frame 
     FVector ImuplseForce;
     //Drag for impulses
-    float ImpulseDrag = 0.995f;
+    float ImpulseDrag = 0.992f;
     TArray<AActor> FrameMoveIgnoreActors;
 
     //MOVEMENT INTERNAL DATA
@@ -56,7 +56,8 @@ class UFrameMovementComponent : UActorComponent
     //INHERIT MOVEMENT
     // private TArray<AActor> InheritMovementActors;
     private FInheritenceMovementData InheritenceData;
-    private FVector InheritedLocalOffset;
+    private FVector InheritedVelocity;
+    private float InheritedDrag = 0.995;
 
     UFUNCTION(BlueprintOverride)
     void BeginPlay()
@@ -90,7 +91,7 @@ class UFrameMovementComponent : UActorComponent
     //Add velocity to frame - assumes this is a delta velocity
     void AddVelocityToFrame(FVector NewVelocity)
     {
-        VelocityCollection.Add(NewVelocity);
+        Velocity += NewVelocity;
     }
 
     //Runs internally
@@ -136,7 +137,6 @@ class UFrameMovementComponent : UActorComponent
         if (bApplyGravity)
             ApplyGravity(DeltaTime);
 
-        Velocity = FVector(0.0); 
         // FVector Impulses; 
         FVector LastLoc = Owner.ActorLocation;
 
@@ -145,42 +145,29 @@ class UFrameMovementComponent : UActorComponent
             Velocity += CurrentVelocity;
         }
 
-        // TArray<FVector> ImuplsesToRemove;
-
-        // for (FVector& CurrentVelocity : ImuplseCollection)
-        // {
-        //     Impulses += CurrentVelocity;
-        //     CurrentVelocity *= ImpulseDrag;
-
-        //     if (CurrentVelocity.Size() <= 0.025f)
-        //         ImuplsesToRemove.Add(CurrentVelocity);
-        // }
-
-        // for (FVector& CurrentVelocity : ImuplsesToRemove)
-        // {
-        //     ImuplseCollection.Remove(CurrentVelocity);
-        // }
-
         ImuplseForce -= (ImuplseForce * ImpulseDrag * DeltaTime);
-        PrintToScreen(f"{ImuplseForce=}");
-
         Velocity += ImuplseForce * DeltaTime;
-        PredictedMove = Owner.ActorLocation + Velocity;
 
         if (bApplyCornerSlide)
         {
-            PredictedMove += GetCornerSlideOffset(DeltaTime);
+            Velocity += GetCornerSlideOffset(DeltaTime);
         }
 
-        if (InheritenceData.Actor != nullptr)
+        if (InheritenceData.Comp != nullptr)
         {
-            PredictedMove += InheritenceData.Comp.GetInheritedVelocity();
+            InheritedVelocity = InheritenceData.Comp.GetInheritedVelocity();
+            InheritenceData.Comp = nullptr;
         }
+
+        if (!InheritedVelocity.IsNearlyZero())
+        {
+            Velocity += InheritedVelocity;
+            InheritedVelocity -= (InheritedVelocity * InheritedDrag * DeltaTime);
+        }
+
+        PredictedMove = Owner.ActorLocation + Velocity;
 
         bShouldCornerApplySlide = false;
-
-        // if (Owner.ActorLocation != PredictedMove)
-        // {
         bIsGrounded = false;
 
         // //SECOND METHOD - taken from Emil... Maybe more ideal for character movement??
@@ -242,7 +229,7 @@ class UFrameMovementComponent : UActorComponent
 
             if (!bInheritenceHitMade && bWasGroundHit)
             {
-                bInheritenceHitMade = UpdateTargetInheritMovementActor(Hit.Actor);
+                bInheritenceHitMade = UpdateTargetInheritMovementActor(Hit.Actor, Hit.Component);
             }
 
             //Set inheritence ground impact this frame   
@@ -283,6 +270,11 @@ class UFrameMovementComponent : UActorComponent
             System::SphereTraceSingle(PredictedMove, PredictedMove + TraceDirection, PlayerSphereComp.SphereRadius - 1, ETraceTypeQuery::Visibility, false, FrameMoveIgnoreActors, EDrawDebugTrace::None, Hit, true, FLinearColor::Red);
         }
 
+        if (bIsGrounded && InheritenceData.Comp == nullptr)
+        {
+            InheritedVelocity = FVector(0);
+        }
+
         Owner.ActorLocation = PredictedMove;
 
         if (InheritenceData.Comp != nullptr)
@@ -294,15 +286,13 @@ class UFrameMovementComponent : UActorComponent
 
         if (bApplyCornerSlide)
             RunCornerSlideCheck();
-        // }
 
         MoveThisFrame = Owner.ActorLocation - LastLoc;
 
-        VelocityCollection.Empty();
-        // ImuplsesToRemove.Empty();
+        Velocity = FVector(0.0); 
 
-        PrintToScreen(f"{InheritenceData.Actor=}");
-        PrintToScreen(f"{bIsGrounded=}");
+        // PrintToScreen(f"{InheritenceData.Actor=}");
+        // PrintToScreen(f"{bIsGrounded=}");
     }
 
     private FVector GetDepenetrationOffset(FVector CurrentPredictedMove, FVector ImpactNormal, FVector ImpactPoint, float DeltaTime)
@@ -433,7 +423,7 @@ class UFrameMovementComponent : UActorComponent
             if (ImpactedCorner(MovementDirection, Hit))
             {
                 if (InternalGroundPlane.Size() == 0.0)
-                    return FVector::UpVector;
+                    InternalGroundPlane = FVector::UpVector;
 
                 return InternalGroundPlane;
             }
@@ -488,7 +478,7 @@ class UFrameMovementComponent : UActorComponent
 
     //Gets valid hit (always defaults to last valid hit made)
     //Return true if we were updated
-    bool UpdateTargetInheritMovementActor(AActor HitActor)
+    bool UpdateTargetInheritMovementActor(AActor HitActor, UPrimitiveComponent HitComponent)
     {
         // auto Vol = UMovementInheritenceVolume::Get(HitActor);
         auto Comp = UMovementInheritenceComponent::Get(HitActor);
@@ -499,6 +489,7 @@ class UFrameMovementComponent : UActorComponent
             {
                 InheritenceData.Actor = HitActor;
                 InheritenceData.Comp = Comp;
+                InheritenceData.Comp.HitComponent = HitComponent;
                 return true;
             }
 

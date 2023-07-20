@@ -8,7 +8,7 @@ class UPlayerJumpModule : UModule
     APlayerVessel Player;
     UFrameMovementComponent MoveComp;
 
-    float Impulse = 800.0;
+    float Impulse = 1000.0;
 
     void Setup() override
     {

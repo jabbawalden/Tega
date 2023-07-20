@@ -25,9 +25,9 @@ struct FMovementGravitySettings
     UPROPERTY()
     float InitAmount = 50.0;
     UPROPERTY()
-    float Gravity = 3000.f;
+    float Gravity = 4000.f;
     UPROPERTY()
-    float GravityAcceleration = 1600.f;
+    float GravityAcceleration = 2000.f;
 }
 
 struct FInheritenceMovementData

@@ -47,9 +47,9 @@ struct FPlayerMovementSettings
     UPROPERTY()
     float DashRecoveryTime = 0.4f;
     UPROPERTY()
-    float Gravity = 2200.f;
+    float Gravity = 3000.f;
     UPROPERTY()
-    float GravityAcceleration = 2000.f;
+    float GravityAcceleration = 2500.f;
 
     EPlayerSettingsPriority SettingsPriority;
 
