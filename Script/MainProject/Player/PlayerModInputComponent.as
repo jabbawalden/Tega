@@ -162,7 +162,7 @@ class UPlayerModInputComponent : UInputComponent
         bFaceButtonRightHeld = false;
     }
 
-    bool WasInputActioned(FName Tag)
+    bool WasInputActioned(FName Tag) const
     {
         if (Tag == InputNames::FaceButtonTop)
             return bFaceButtonTopActioned;
@@ -191,7 +191,7 @@ class UPlayerModInputComponent : UInputComponent
         return false;
     }
 
-    bool IsInputActioning(FName Tag)
+    bool IsInputActioning(FName Tag) const
     {
         if (Tag == InputNames::FaceButtonTop)
             return bFaceButtonTopHeld;
@@ -244,7 +244,7 @@ class UPlayerModInputComponent : UInputComponent
         RightAxis.Y = Axis;
     }
 
-    FVector GetStickVector(FName Tag)
+    FVector GetStickVector(FName Tag) const
     {   
         if (Tag == InputNames::LeftStickRaw)
             return FVector(LeftAxis.Y, LeftAxis.X, 0.f).GetSafeNormal();
@@ -257,30 +257,6 @@ class UPlayerModInputComponent : UInputComponent
 
         if (Tag == InputNames::RightStickMovement)
             return ((CameraConstrainedForward * RightAxis.Y) + (CameraConstrainedRight * RightAxis.X)).GetSafeNormal();
-            
-        // if (Tag == InputNames::LeftStickRaw)
-        // {
-        //     if (FVector(LeftAxis.Y, LeftAxis.X, 0.f).Size() > 0.99f)
-        //         return FVector(LeftAxis.Y, LeftAxis.X, 0.f);
-        // }
-
-        // if (Tag == InputNames::RightStickRaw)
-        // {
-        //     if (FVector(RightAxis.Y, RightAxis.X, 0.f).Size() > 0.99f)
-        //         return FVector(RightAxis.Y, RightAxis.X, 0.f);
-        // }
-
-        // if (Tag == InputNames::LeftStickMovement)
-        // {
-        //     if (FVector((CameraConstrainedForward * LeftAxis.Y) + (CameraConstrainedRight * LeftAxis.X)).Size() > 0.99f)
-        //         return (CameraConstrainedForward * LeftAxis.Y) + (CameraConstrainedRight * LeftAxis.X);
-        // }
-
-        // if (Tag == InputNames::RightStickMovement)
-        // {
-        //     if (FVector((CameraConstrainedForward * RightAxis.Y) + (CameraConstrainedRight * RightAxis.X)).Size() > 0.99f)
-        //         return (CameraConstrainedForward * RightAxis.Y) + (CameraConstrainedRight * RightAxis.X);
-        // }
 
         return FVector(0.f);
     }
