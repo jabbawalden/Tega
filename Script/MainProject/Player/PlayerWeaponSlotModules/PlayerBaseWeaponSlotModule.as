@@ -9,6 +9,8 @@ class UPlayerBaseWeaponSlotModule : UModule
     UWeaponSlotComponent WeaponSlot;
 
     FName InputTag;
+
+    bool bShouldDeactivate;
  
     void Setup() override
     {
@@ -20,10 +22,15 @@ class UPlayerBaseWeaponSlotModule : UModule
         if (!WeaponSlot.bHasWeapon)
             return false;
 
-        if (!Player.WasInputActioned(InputTag))
+        if (!WeaponSlot.CooldownComplete())
+        {
             return false;
-        
-        if (WeaponSlot.CurrentOverheat >= 1.0)
+        }
+
+        if (WeaponSlot.WeaponSettings.GetOverheatCompletely())
+            return false;
+
+        if (!Player.WasInputActioned(InputTag))
             return false;
 
         return true;
@@ -39,12 +46,11 @@ class UPlayerBaseWeaponSlotModule : UModule
             if(!Player.IsInputActioning(InputTag))
                 return true;
         }
-        else
-        {
-            return true;
-        }
 
-        if (WeaponSlot.CurrentOverheat >= 1.0)
+        if (bShouldDeactivate)
+            return true;
+
+        if (WeaponSlot.WeaponSettings.GetOverheatCompletely())
             return true;
 
         return false;
@@ -52,16 +58,17 @@ class UPlayerBaseWeaponSlotModule : UModule
 
     void OnActivated() override
     {
-        
+        WeaponSlot.SetWeaponOnActivated();
+        bShouldDeactivate = false;
     }
 
     void OnDeactivated() override
     {
-        
+        WeaponSlot.SetWeaponOnDeactivated();
     }
 
     void Update(float DeltaTime) override
     {
-
+        bShouldDeactivate = WeaponSlot.RunWeaponAndCheckDeactivation();
     }
 }

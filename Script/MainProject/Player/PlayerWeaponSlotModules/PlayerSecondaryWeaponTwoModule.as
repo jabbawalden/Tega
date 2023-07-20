@@ -10,6 +10,6 @@ class UPlayerSecondaryWeaponTwoModule : UPlayerBaseWeaponSlotModule
     void Setup() override
     {
         Super::Setup();
-        WeaponSlot = Player.PlayerSecondaryWeaponOne;
+        WeaponSlot = Player.PlayerSecondaryWeaponTwo;
     }
 }

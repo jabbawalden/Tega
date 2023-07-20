@@ -163,6 +163,12 @@ class APlayerVessel : APlayerModPawn
         AimTraceIgnoreActors.Add(this);
 
         CurrentBoost = MaxBoost;
+
+        //FOR TESTING
+        PlayerPrimaryWeaponOne.UpdatePrimaryWeaponType(EPrimaryWeaponSlotType::Gattling);
+        PlayerPrimaryWeaponTwo.UpdatePrimaryWeaponType(EPrimaryWeaponSlotType::AutoCannon);
+        PlayerSecondaryWeaponOne.UpdateSecondaryWeaponType(ESecondaryWeaponSlotType::PulseBeam);
+        PlayerSecondaryWeaponTwo.UpdateSecondaryWeaponType(ESecondaryWeaponSlotType::MissileLauncher);
     }
 
     void SpawnProjectile(FVector Origin, FVector Direction)
