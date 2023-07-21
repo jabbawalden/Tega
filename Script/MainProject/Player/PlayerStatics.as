@@ -86,7 +86,7 @@ struct FPlayerCameraCameraOffset
     UPROPERTY()
     float CameraOffsetY = 80;
     UPROPERTY()
-    float CameraOffsetZ = -50.f;
+    float CameraOffsetZ = -100.f;
 }
 
 struct FPlayerCameraControlSettings

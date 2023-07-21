@@ -17,9 +17,10 @@ class UAIHealthComponent : UActorComponent
         Health = MaxHealth;
     }
 
-    void DealDamage(float Damage)
+    void DealDamage(FDamageData DamageData)
     {
-        Health -= Damage;
+        //Check for types later and compare against susceptibility
+        Health -= DamageData.Damage;
 
         if (Health <= 0.f)
         {

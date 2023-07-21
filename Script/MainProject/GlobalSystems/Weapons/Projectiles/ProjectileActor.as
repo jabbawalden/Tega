@@ -1,24 +1,39 @@
-class APlayerProjectile : AModActor
+struct FProjectileData
+{
+    UPROPERTY()
+    float MoveSpeed = 5000.0;
+    UPROPERTY()
+    float LifeTime = 2.0;
+    UPROPERTY()
+    FVector MoveDirection;
+}
+
+class AProjectileActor : AModActor
 {
     UPROPERTY(DefaultComponent, RootComponent)
-    UBoxComponent BoxComp;
-    default BoxComp.SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+    USceneComponent Root;
 
-    UPROPERTY(DefaultComponent, Attach = BoxComp)
+    UPROPERTY(DefaultComponent, Attach = Root)
     UStaticMeshComponent MeshComp;
     default MeshComp.SetCollisionEnabled(ECollisionEnabled::NoCollision);
     default MeshComp.SetCastShadow(false);
 
     UObject OurInstigator;
 
-    float MoveSpeed = 18000.f;
-    float LifeTime = 1.5f;
+    UPROPERTY()
+    FDamageData DamageData;
+    UPROPERTY()
+    FProjectileData ProjectileData;
+
+    FAimData AimData;
 
     TArray<AActor> IgnoreActors;
 
-    void InitiateProjectile(AActor InInstigator)
+    void InitiateProjectile(AActor InInstigator, FVector StartDirection, FAimData NewAimData)
     {
         OurInstigator = InInstigator;
+        ProjectileData.MoveDirection = StartDirection;
+        AimData = NewAimData;
         IgnoreActors.Add(InInstigator);
         IgnoreActors.Add(this);
     }
@@ -26,11 +41,9 @@ class APlayerProjectile : AModActor
     UFUNCTION(BlueprintOverride)
     void Tick(float DeltaTime)
     {
-        ActorLocation += ActorForwardVector * MoveSpeed * DeltaTime;
+        ProjectileData.LifeTime -= DeltaTime;
 
-        LifeTime -= DeltaTime;
-
-        if (LifeTime <= 0.f)
+        if (ProjectileData.LifeTime <= 0.f)
             DestroyActor();
 
         TraceForTarget();
@@ -40,7 +53,7 @@ class APlayerProjectile : AModActor
     {
         FHitResult Hit;
         FVector Start = ActorLocation;
-        FVector End = ActorLocation + ActorForwardVector * (MoveSpeed + 1000.f) * Gameplay::WorldDeltaSeconds;
+        FVector End = ActorLocation + ProjectileData.MoveDirection * (ProjectileData.MoveSpeed * Gameplay::WorldDeltaSeconds);
         System::LineTraceSingle(Start, End, ETraceTypeQuery::WeaponTrace, false, IgnoreActors, EDrawDebugTrace::None, Hit, true);
 
         if (Hit.bBlockingHit)
@@ -48,7 +61,7 @@ class APlayerProjectile : AModActor
             UAIHealthComponent HealthComp = UAIHealthComponent::Get(Hit.Actor);
 
             if (HealthComp != nullptr)
-                HealthComp.DealDamage(1.f);
+                HealthComp.DealDamage(DamageData);
             
             DestroyActor();
         }

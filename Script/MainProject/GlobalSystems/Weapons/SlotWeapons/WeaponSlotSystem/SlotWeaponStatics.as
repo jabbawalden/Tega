@@ -100,21 +100,14 @@ struct FWeaponSettings
     }
 }
 
-struct FWeaponAimData
-{
-    UPROPERTY()
-    FVector AimStartPosition;
-    UPROPERTY()
-    FVector AimDirection;
-}
-
 namespace SlotWeaponStats
 {
     FWeaponSettings GetBaseGattlingSettings() 
     {
         FWeaponSettings NewSettings;
+        NewSettings.WeaponInputType = EWeaponFireType::AutoFire;
         NewSettings.Damage = 3.5;
-        NewSettings.FireRate = 0.075;
+        NewSettings.FireRate = 0.05;
         NewSettings.OverheatPerFire = 0.015;
 
         return NewSettings;

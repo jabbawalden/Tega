@@ -72,9 +72,6 @@ class APlayerVessel : APlayerModPawn
     APlayerVesselCamera PlayerCamera;
 
     UPROPERTY(Category = "Setup", EditDefaultsOnly)
-    TSubclassOf<APlayerProjectile> ProjectileClass; 
-
-    UPROPERTY(Category = "Setup", EditDefaultsOnly)
     TSubclassOf<UUserWidget> AimWidgetClass;
     UPlayerAimWidget AimWidget;
 
@@ -168,12 +165,6 @@ class APlayerVessel : APlayerModPawn
 
         //FOR TESTING
         PlayerPrimaryWeaponOne.SetWeapon(ESlotWeaponClassType::Gattling);
-    }
-
-    void SpawnProjectile(FVector Origin, FVector Direction)
-    {
-        APlayerProjectile Proj = Cast<APlayerProjectile>(SpawnActor(ProjectileClass, Origin, Direction.Rotation()));
-        Proj.InitiateProjectile(this);
     }
 
     void SwitchSpecialAbilityMode()

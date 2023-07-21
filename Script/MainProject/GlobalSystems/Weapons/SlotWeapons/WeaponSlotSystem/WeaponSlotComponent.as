@@ -1,4 +1,4 @@
-event void FOnWeaponSlotFired(FWeaponAimData AimData);
+event void FOnWeaponSlotFired(FAimData AimData);
 
 enum EWeaponSlotType
 {
@@ -17,7 +17,7 @@ class UWeaponSlotComponent : USceneComponent
     float CurrentOverheat;
     
     ASlotWeapon ActiveWeapon;
-    FWeaponSettings WeaponSettings;
+    protected FWeaponSettings WeaponSettings;
 
     //Have weapon in this slot
     bool bHasWeapon;
@@ -33,7 +33,6 @@ class UWeaponSlotComponent : USceneComponent
     {
         AimComp = UAimComponent::Get(Owner);
         WeaponDataComp = USlotWeaponDataComponent::Get(Owner);
-
     }
 
     UFUNCTION(BlueprintOverride)
@@ -50,10 +49,7 @@ class UWeaponSlotComponent : USceneComponent
                 WeaponSettings.SetCurrentOverheat(WeaponSettings.GetCurrentOverheat() - WeaponSettings.OverheatReducedRecoveryPerSecond * DeltaSeconds);
 
             if (WeaponSettings.GetCurrentOverheat() <= 0.0)
-            {
                 WeaponSettings.SetOverheatCompletely(false);
-            }
-
         }
     }
 
@@ -62,6 +58,11 @@ class UWeaponSlotComponent : USceneComponent
         //run here also in case set weapon is called first
         WeaponDataComp.SetWeaponData();
         ReplaceCurrentWeapon(WeaponDataComp.GetWeaponData(Type));
+    }
+
+    FWeaponSettings GetCurrentWeaponSettings()
+    {
+        return WeaponSettings;
     }
 
     private void ReplaceCurrentWeapon(ASlotWeapon Weapon)
@@ -85,7 +86,8 @@ class UWeaponSlotComponent : USceneComponent
     private void SetActiveWeapon(ASlotWeapon Weapon)
     {
         ActiveWeapon = Weapon;
-        ActiveWeapon.EnableWeapon();
+        WeaponSettings = ActiveWeapon.GetWeaponSettings();
+        ActiveWeapon.EnableWeapon(this);
         ActiveWeapon.AttachToComponent(this, NAME_None, EAttachmentRule::SnapToTarget);
         bHasWeapon = true;
     }
@@ -124,11 +126,7 @@ class UWeaponSlotComponent : USceneComponent
                 WeaponSettings.SetOverheatCompletely(true);
             }
 
-            FWeaponAimData AimData;
-            AimData.AimDirection = AimComp.GetAimDirection();
-            AimData.AimStartPosition = AimComp.GetAimStartPosition();
-
-            OnWeaponSlotFired.Broadcast(AimData); 
+            OnWeaponSlotFired.Broadcast(AimComp.GetAimData()); 
         }
     }
 

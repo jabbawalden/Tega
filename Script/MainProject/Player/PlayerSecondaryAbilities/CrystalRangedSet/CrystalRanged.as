@@ -29,7 +29,7 @@ class ACrystalRanged : AModActor
     USceneComponent ShootOrigin;
 
     UPROPERTY(Category = "Setup", EditDefaultsOnly)
-    TSubclassOf<APlayerProjectile> ProjectileClass;
+    TSubclassOf<AProjectileActor> ProjectileClass;
 
     UPROPERTY(Category = "Setup", EditDefaultsOnly)
     UModuleSheet ModuleSheet;
