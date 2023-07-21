@@ -5,7 +5,7 @@ struct FAimData
     UPROPERTY()
     FVector AimDirection;
     UPROPERTY()
-    AActor TargetActor;
+    UPrimitiveComponent Target;
     UPROPERTY()
     FVector HitPoint;
 }
@@ -43,15 +43,15 @@ class UAimComponent : UActorComponent
         if (AimHit.bBlockingHit)
         {
             AimData.HitPoint = AimHit.ImpactPoint;
-            AimData.TargetActor = AimHit.Actor;
+            AimData.Target = AimHit.Component;
         }
         else
         {
             AimData.HitPoint = End;
-            AimData.TargetActor = nullptr;
+            AimData.Target = nullptr;
         }
 
-        PrintToScreen(f"{AimData.TargetActor=}");
+        PrintToScreen(f"{AimData.Target=}");
         // System::DrawDebugLine(Player.GetViewLocation(), Player.GetViewLocation() + Player.GetViewDirection() * 1000.0, FLinearColor::Green, 0, 5.0);
         // System::DrawDebugSphere(GetAimStartPosition(), 25, 12, FLinearColor::Teal, 0, 5.0);
         // System::DrawDebugSphere(Player.GetViewLocation(), 25, 12, FLinearColor::Green, 0, 5.0);

@@ -2,6 +2,9 @@ class ASWGattling : ASlotWeapon
 {
     default SlotType = EWeaponSlotType::Primary;
 
+    UPROPERTY(DefaultComponent, Attach = Root)
+    USceneComponent ShotOrigin;
+
     UPROPERTY()
     TSubclassOf<AProjectileActor> ProjectileClass;
 

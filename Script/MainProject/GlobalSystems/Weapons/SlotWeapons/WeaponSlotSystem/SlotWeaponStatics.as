@@ -31,7 +31,7 @@ enum EWeaponFireType
     OneShot
 }
 
-struct FWeaponSettings  
+struct FWeaponData  
 {
     EWeaponFireType WeaponInputType;
     float FireRate = 0.5;
@@ -102,75 +102,75 @@ struct FWeaponSettings
 
 namespace SlotWeaponStats
 {
-    FWeaponSettings GetBaseGattlingSettings() 
+    FWeaponData GetBaseGattlingSettings() 
     {
-        FWeaponSettings NewSettings;
-        NewSettings.WeaponInputType = EWeaponFireType::AutoFire;
-        NewSettings.Damage = 3.5;
-        NewSettings.FireRate = 0.05;
-        NewSettings.OverheatPerFire = 0.015;
+        FWeaponData NewData;
+        NewData.WeaponInputType = EWeaponFireType::AutoFire;
+        NewData.Damage = 3.5;
+        NewData.FireRate = 0.05;
+        NewData.OverheatPerFire = 0.015;
 
-        return NewSettings;
+        return NewData;
     }
 
-    FWeaponSettings GetBasePlasmaSettings()
+    FWeaponData GetBasePlasmaSettings()
     {
-        FWeaponSettings NewSettings;
-        NewSettings.Damage = 10.0;
-        NewSettings.FireRate = 0.15;
-        NewSettings.OverheatPerFire = 0.03;
+        FWeaponData NewData;
+        NewData.Damage = 10.0;
+        NewData.FireRate = 0.15;
+        NewData.OverheatPerFire = 0.03;
 
-        return NewSettings;
+        return NewData;
     }
 
-    FWeaponSettings GetBaseAutoCannonSettings()
+    FWeaponData GetBaseAutoCannonSettings()
     {
-        FWeaponSettings NewSettings;
-        NewSettings.Damage = 15.0;
-        NewSettings.FireRate = 0.2;
-        NewSettings.OverheatPerFire = 0.05;
+        FWeaponData NewData;
+        NewData.Damage = 15.0;
+        NewData.FireRate = 0.2;
+        NewData.OverheatPerFire = 0.05;
 
-        return NewSettings;
+        return NewData;
     }
 
-    FWeaponSettings GetBaseBlasterSettings()
+    FWeaponData GetBaseBlasterSettings()
     {
-        FWeaponSettings NewSettings;
-        NewSettings.WeaponInputType = EWeaponFireType::OneShot;
-        NewSettings.Damage = 100.0;
-        NewSettings.FireRate = 0.0;
-        NewSettings.OverheatPerFire = 0.25;
-        NewSettings.MaxRounds = 1;
-        NewSettings.Cooldown = 0.8;
+        FWeaponData NewData;
+        NewData.WeaponInputType = EWeaponFireType::OneShot;
+        NewData.Damage = 100.0;
+        NewData.FireRate = 0.0;
+        NewData.OverheatPerFire = 0.25;
+        NewData.MaxRounds = 1;
+        NewData.Cooldown = 0.8;
 
-        return NewSettings;
+        return NewData;
     }
 
-    FWeaponSettings GetBaseMissileLauncherSettings()
+    FWeaponData GetBaseMissileLauncherSettings()
     {
-        FWeaponSettings NewSettings;
-        NewSettings.WeaponInputType = EWeaponFireType::OneShot;
-        NewSettings.Damage = 15.0;
-        NewSettings.FireRate = 0.1;
-        NewSettings.OverheatPerFire = 0.05;
-        NewSettings.MaxRounds = 6;
+        FWeaponData NewData;
+        NewData.WeaponInputType = EWeaponFireType::OneShot;
+        NewData.Damage = 15.0;
+        NewData.FireRate = 0.1;
+        NewData.OverheatPerFire = 0.05;
+        NewData.MaxRounds = 6;
         //Max amount of firerate + a buffer
-        NewSettings.Cooldown = 0.2;
+        NewData.Cooldown = 0.2;
 
-        return NewSettings;
+        return NewData;
     }
 
-    FWeaponSettings GetBasePulseBeamSettings()
+    FWeaponData GetBasePulseBeamSettings()
     {
-        FWeaponSettings NewSettings;
-        NewSettings.WeaponInputType = EWeaponFireType::OneShot;
-        NewSettings.Damage = 50.0;
-        NewSettings.FireRate = 0.0;
-        NewSettings.MaxRounds = 1;
-        NewSettings.OverheatPerFire = 0.5;
-        NewSettings.Cooldown = 1.0;
+        FWeaponData NewData;
+        NewData.WeaponInputType = EWeaponFireType::OneShot;
+        NewData.Damage = 50.0;
+        NewData.FireRate = 0.0;
+        NewData.MaxRounds = 1;
+        NewData.OverheatPerFire = 0.5;
+        NewData.Cooldown = 1.0;
 
-        return NewSettings;
+        return NewData;
     }
 }
 

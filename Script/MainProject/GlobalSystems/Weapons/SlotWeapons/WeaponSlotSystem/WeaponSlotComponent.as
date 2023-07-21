@@ -17,7 +17,7 @@ class UWeaponSlotComponent : USceneComponent
     float CurrentOverheat;
     
     ASlotWeapon ActiveWeapon;
-    protected FWeaponSettings WeaponSettings;
+    protected FWeaponData WeaponData;
 
     //Have weapon in this slot
     bool bHasWeapon;
@@ -41,15 +41,15 @@ class UWeaponSlotComponent : USceneComponent
         // PrintToScreen(f"{WeaponSettings.GetCurrentRounds()=}");
         // PrintToScreen(f"{WeaponSettings.GetCurrentOverheat()=}");
 
-        if (!bWeaponInUse && WeaponSettings.GetCurrentOverheat() > 0.0)
+        if (!bWeaponInUse && WeaponData.GetCurrentOverheat() > 0.0)
         {
-            if (!WeaponSettings.GetOverheatCompletely())
-                WeaponSettings.SetCurrentOverheat(WeaponSettings.GetCurrentOverheat() - WeaponSettings.OverheatNormalRecoveryPerSecond * DeltaSeconds);
+            if (!WeaponData.GetOverheatCompletely())
+                WeaponData.SetCurrentOverheat(WeaponData.GetCurrentOverheat() - WeaponData.OverheatNormalRecoveryPerSecond * DeltaSeconds);
             else
-                WeaponSettings.SetCurrentOverheat(WeaponSettings.GetCurrentOverheat() - WeaponSettings.OverheatReducedRecoveryPerSecond * DeltaSeconds);
+                WeaponData.SetCurrentOverheat(WeaponData.GetCurrentOverheat() - WeaponData.OverheatReducedRecoveryPerSecond * DeltaSeconds);
 
-            if (WeaponSettings.GetCurrentOverheat() <= 0.0)
-                WeaponSettings.SetOverheatCompletely(false);
+            if (WeaponData.GetCurrentOverheat() <= 0.0)
+                WeaponData.SetOverheatCompletely(false);
         }
     }
 
@@ -60,9 +60,9 @@ class UWeaponSlotComponent : USceneComponent
         ReplaceCurrentWeapon(WeaponDataComp.GetWeaponData(Type));
     }
 
-    FWeaponSettings GetCurrentWeaponSettings()
+    FWeaponData GetCurrentWeaponData()
     {
-        return WeaponSettings;
+        return WeaponData;
     }
 
     private void ReplaceCurrentWeapon(ASlotWeapon Weapon)
@@ -86,7 +86,7 @@ class UWeaponSlotComponent : USceneComponent
     private void SetActiveWeapon(ASlotWeapon Weapon)
     {
         ActiveWeapon = Weapon;
-        WeaponSettings = ActiveWeapon.GetWeaponSettings();
+        WeaponData = ActiveWeapon.GetWeaponData();
         ActiveWeapon.EnableWeapon(this);
         ActiveWeapon.AttachToComponent(this, NAME_None, EAttachmentRule::SnapToTarget);
         bHasWeapon = true;
@@ -96,15 +96,15 @@ class UWeaponSlotComponent : USceneComponent
     //Sends back bool if module should deactivate
     bool RunWeaponAndCheckDeactivation()
     {
-        if (WeaponSettings.MaxRounds > 0 && WeaponSettings.GetCurrentRounds() >= WeaponSettings.MaxRounds)
+        if (WeaponData.MaxRounds > 0 && WeaponData.GetCurrentRounds() >= WeaponData.MaxRounds)
         {
-            WeaponSettings.SetCooldown(System::GameTimeInSeconds + WeaponSettings.Cooldown);
+            WeaponData.SetCooldown(System::GameTimeInSeconds + WeaponData.Cooldown);
             return true;
         }
 
         FireWeaponCheck();
 
-        if (WeaponSettings.GetOverheatCompletely())
+        if (WeaponData.GetOverheatCompletely())
             return true;
 
         return false;
@@ -113,17 +113,17 @@ class UWeaponSlotComponent : USceneComponent
     //return if we should deactivate after fire
     void FireWeaponCheck()
     {
-        if (System::GameTimeInSeconds >= WeaponSettings.GetFireTime())
+        if (System::GameTimeInSeconds >= WeaponData.GetFireTime())
         {
-            WeaponSettings.SetFireTime(System::GameTimeInSeconds + WeaponSettings.FireRate);
-            WeaponSettings.SetCurrentOverheat(WeaponSettings.GetCurrentOverheat() + WeaponSettings.OverheatPerFire);
+            WeaponData.SetFireTime(System::GameTimeInSeconds + WeaponData.FireRate);
+            WeaponData.SetCurrentOverheat(WeaponData.GetCurrentOverheat() + WeaponData.OverheatPerFire);
 
-            if (WeaponSettings.MaxRounds > 0)
-                WeaponSettings.SetCurrentRounds(WeaponSettings.GetCurrentRounds() + 1);
+            if (WeaponData.MaxRounds > 0)
+                WeaponData.SetCurrentRounds(WeaponData.GetCurrentRounds() + 1);
 
-            if (WeaponSettings.GetCurrentOverheat() >= 1.0)
+            if (WeaponData.GetCurrentOverheat() >= 1.0)
             {
-                WeaponSettings.SetOverheatCompletely(true);
+                WeaponData.SetOverheatCompletely(true);
             }
 
             OnWeaponSlotFired.Broadcast(AimComp.GetAimData()); 
@@ -132,14 +132,14 @@ class UWeaponSlotComponent : USceneComponent
 
     bool CooldownComplete()
     {
-        PrintToScreen(f"{WeaponSettings.GetCurrentCooldown()=}");
-        return System::GameTimeInSeconds > WeaponSettings.GetCurrentCooldown();
+        PrintToScreen(f"{WeaponData.GetCurrentCooldown()=}");
+        return System::GameTimeInSeconds > WeaponData.GetCurrentCooldown();
     }
 
     void SetWeaponOnDeactivated()
     {
-        WeaponSettings.SetCurrentRounds(0);
-        WeaponSettings.SetFireTime(0.0);
+        WeaponData.SetCurrentRounds(0);
+        WeaponData.SetFireTime(0.0);
         bWeaponInUse = false;
     }
 

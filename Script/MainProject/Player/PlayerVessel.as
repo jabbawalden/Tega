@@ -165,6 +165,7 @@ class APlayerVessel : APlayerModPawn
 
         //FOR TESTING
         PlayerPrimaryWeaponOne.SetWeapon(ESlotWeaponClassType::Gattling);
+        PlayerSecondaryWeaponTwo.SetWeapon(ESlotWeaponClassType::MissileLauncher);
     }
 
     void SwitchSpecialAbilityMode()

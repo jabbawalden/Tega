@@ -27,7 +27,7 @@ class UPlayerBaseWeaponSlotModule : UModule
             return false;
         }
 
-        if (WeaponSlot.GetCurrentWeaponSettings().GetOverheatCompletely())
+        if (WeaponSlot.GetCurrentWeaponData().GetOverheatCompletely())
             return false;
 
         if (!Player.WasInputActioned(InputTag))
@@ -41,7 +41,7 @@ class UPlayerBaseWeaponSlotModule : UModule
         if (!WeaponSlot.bHasWeapon)
             return true;
 
-        if (WeaponSlot.GetCurrentWeaponSettings().WeaponInputType == EWeaponFireType::AutoFire)
+        if (WeaponSlot.GetCurrentWeaponData().WeaponInputType == EWeaponFireType::AutoFire)
         {
             if(!Player.IsInputActioning(InputTag))
                 return true;
@@ -50,7 +50,7 @@ class UPlayerBaseWeaponSlotModule : UModule
         if (bShouldDeactivate)
             return true;
 
-        if (WeaponSlot.GetCurrentWeaponSettings().GetOverheatCompletely())
+        if (WeaponSlot.GetCurrentWeaponData().GetOverheatCompletely())
             return true;
 
         return false;

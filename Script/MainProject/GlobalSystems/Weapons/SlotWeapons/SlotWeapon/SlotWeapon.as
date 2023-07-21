@@ -6,38 +6,35 @@ class ASlotWeapon : AActor
     UPROPERTY(DefaultComponent, Attach = Root)
     USceneComponent MeshRoot;
 
-    UPROPERTY(DefaultComponent, Attach = Root)
-    USceneComponent ShotOrigin;
-
     UPROPERTY()
     EWeaponSlotType SlotType;
     
-    private FWeaponSettings WeaponSettings;
-    UWeaponSlotComponent WeaponSlot;
+    private FWeaponData WeaponSettings;
+    UWeaponSlotComponent WeaponSlotComp;
 
-    void InitiateWeapon(FWeaponSettings NewWeaponSettings)
+    void InitiateWeapon(FWeaponData NewWeaponData)
     {
-        WeaponSettings = NewWeaponSettings;
+        WeaponSettings = NewWeaponData;
         DisableWeapon();
     }
 
-    FWeaponSettings GetWeaponSettings()
+    FWeaponData GetWeaponData()
     {
         return WeaponSettings;
     }
 
     void EnableWeapon(UWeaponSlotComponent AllotedWeaponSlot)
     {
-        WeaponSlot = AllotedWeaponSlot;
-        WeaponSlot.OnWeaponSlotFired.AddUFunction(this, n"OnWeaponSlotFired");
+        WeaponSlotComp = AllotedWeaponSlot;
+        WeaponSlotComp.OnWeaponSlotFired.AddUFunction(this, n"OnWeaponSlotFired");
         SetActorHiddenInGame(false);
     }
 
     void DisableWeapon()
     {
         SetActorHiddenInGame(true);
-        if (WeaponSlot != nullptr)
-            WeaponSlot.OnWeaponSlotFired.Clear();
+        if (WeaponSlotComp != nullptr)
+            WeaponSlotComp.OnWeaponSlotFired.Clear();
     }
 
     UFUNCTION()
