@@ -5,7 +5,7 @@ class AMissileProjectile : AProjectileActor
     default ProjectileData.MoveSpeed = 4000.0;
     default ProjectileData.LifeTime = 3.5;
 
-    float FollowCorrectionInterp = 2.0;
+    float FollowCorrectionInterp = 3.5;
 
     FVector TargetDirection;
 

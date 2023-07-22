@@ -1,5 +1,3 @@
-event void FOnWeaponSlotFired(FAimData AimData);
-
 enum EWeaponSlotType
 {
     Primary,
@@ -8,9 +6,6 @@ enum EWeaponSlotType
 
 class UWeaponSlotComponent : USceneComponent
 {
-    UPROPERTY()
-    FOnWeaponSlotFired OnWeaponSlotFired;
-
     UPROPERTY()
     EWeaponSlotType SlotType;
 
@@ -126,7 +121,7 @@ class UWeaponSlotComponent : USceneComponent
                 WeaponData.SetOverheatCompletely(true);
             }
 
-            OnWeaponSlotFired.Broadcast(AimComp.GetAimData()); 
+            ActiveWeapon.FireAttack(AimComp.GetAimData());
         }
     }
 

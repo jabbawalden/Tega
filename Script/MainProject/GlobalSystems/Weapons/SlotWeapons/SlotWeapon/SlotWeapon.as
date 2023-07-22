@@ -26,25 +26,17 @@ class ASlotWeapon : AActor
     void EnableWeapon(UWeaponSlotComponent AllotedWeaponSlot)
     {
         WeaponSlotComp = AllotedWeaponSlot;
-        WeaponSlotComp.OnWeaponSlotFired.AddUFunction(this, n"OnWeaponSlotFired");
         SetActorHiddenInGame(false);
     }
 
     void DisableWeapon()
     {
         SetActorHiddenInGame(true);
-        if (WeaponSlotComp != nullptr)
-            WeaponSlotComp.OnWeaponSlotFired.Clear();
+        WeaponSlotComp = nullptr;
     }
 
-    UFUNCTION()
-    private void OnWeaponSlotFired(FAimData AimData)
+    //Function to override
+    void FireAttack(FAimData AimData)
     {
-        FireAttack(AimData);
-    }
-
-    protected void FireAttack(FAimData AimData)
-    {
-        //Spawn attack actor
     }
 }
