@@ -1,0 +1,4 @@
+class ULockOnComponent : USceneComponent
+{
+
+}

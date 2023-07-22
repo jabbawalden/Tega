@@ -108,7 +108,7 @@ namespace SlotWeaponStats
         NewData.WeaponInputType = EWeaponFireType::AutoFire;
         NewData.Damage = 3.5;
         NewData.FireRate = 0.05;
-        NewData.OverheatPerFire = 0.015;
+        NewData.OverheatPerFire = 0.005;
 
         return NewData;
     }

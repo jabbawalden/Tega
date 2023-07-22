@@ -34,7 +34,7 @@ class UAimComponent : UActorComponent
         FHitResult AimHit;
 
         FVector Start = GetAimStartPosition();
-        FVector End = Start + GetAimDirection() * 25000.0;
+        FVector End = Start + GetAimDirection() * 100000.0;
         System::LineTraceSingle(Start, End, ETraceTypeQuery::WeaponTrace, false, IgnoreActors, EDrawDebugTrace::None, AimHit, true);
 
         AimData.AimDirection = GetAimDirection();
@@ -54,6 +54,7 @@ class UAimComponent : UActorComponent
         PrintToScreen(f"{AimData.Target=}");
         // System::DrawDebugLine(Player.GetViewLocation(), Player.GetViewLocation() + Player.GetViewDirection() * 1000.0, FLinearColor::Green, 0, 5.0);
         // System::DrawDebugSphere(GetAimStartPosition(), 25, 12, FLinearColor::Teal, 0, 5.0);
+        System::DrawDebugSphere(AimData.HitPoint, 25, 12, FLinearColor::Red, 0, 5.0);
         // System::DrawDebugSphere(Player.GetViewLocation(), 25, 12, FLinearColor::Green, 0, 5.0);
         // System::DrawDebugSphere(Player.GetViewTargetLocation(), 25, 12, FLinearColor::Red, 0, 5.0);
     }
